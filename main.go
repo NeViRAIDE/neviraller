@@ -10,6 +10,8 @@ import (
 	"strings"
 )
 
+// greeting displays a welcome message and asks the user for confirmation
+// to continue with the installation.
 func greeting() {
 	fmt.Println("Welcome to the NEVIRAIDE installer!")
 	fmt.Println("This script will check for required dependencies and install them if they're missing.")
@@ -26,6 +28,8 @@ func greeting() {
 	}
 }
 
+// checkCommandsAvailability checks if the required commands are available
+// Returns a slice of missing commands.
 func checkCommandsAvailability(names map[string]string) []string {
 	missing := []string{}
 	for name, cmd := range names {
@@ -37,6 +41,8 @@ func checkCommandsAvailability(names map[string]string) []string {
 	return missing
 }
 
+// installWithPacman installs the provided package using pacman.
+// Logs an error if the installation fails.
 func installWithPacman(pkg string) {
 	cmd := exec.Command("sudo", "pacman", "-S", "--noconfirm", pkg)
 	if err := cmd.Run(); err != nil {
@@ -82,7 +88,7 @@ func main() {
 
 	if _, err = os.Stat(configDir); !os.IsNotExist(err) {
 		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("~/.config/nvim already exist. Remove it? [y/n]: ")
+		fmt.Print("~/.config/nvim already exists. Remove it? [y/n]: ")
 		answer, _ := reader.ReadString('\n')
 		answer = strings.TrimSpace(answer)
 
