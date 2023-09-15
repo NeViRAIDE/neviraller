@@ -8,17 +8,13 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"regexp"
 	"strings"
 	"time"
 
-	"github.com/PuerkitoBio/goquery"
+	"github.com/RAprogramm/neviraide-install/internal/scrap"
 )
 
-const (
-	nvimReleaseURL  = "https://github.com/neovim/neovim/releases/tag/nightly"
-	nvimDownloadURL = "https://github.com/neovim/neovim/releases/download/nightly/nvim.appimage"
-)
+const nvimDownloadURL = "https://github.com/neovim/neovim/releases/download/nightly/nvim.appimage"
 
 func checkCommandExists(command string) error {
 	_, err := exec.LookPath(command)
@@ -45,7 +41,7 @@ func InstallNeovim() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	newNvimVer, err := getNeovimVersionFromMetaTag(ctx)
+	newNvimVer, err := scrap.GetNeovimVersionFromMetaTag(ctx)
 	if err != nil {
 		log.Fatalf("Error getting Neovim version: %v", err)
 	}
@@ -98,31 +94,4 @@ func InstallNeovim() {
 
 		fmt.Println("Neovim Nightly has been updated successfully!")
 	}
-}
-
-func getNeovimVersionFromMetaTag(ctx context.Context) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", nvimReleaseURL, nil)
-	if err != nil {
-		return "", err
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	var version string
-	doc.Find("meta[name='twitter:description']").Each(func(_ int, item *goquery.Selection) {
-		content, _ := item.Attr("content")
-		r, _ := regexp.Compile(`NVIM v[0-9]+\.[0-9]+\.[0-9]+-dev-[a-fA-F0-9]+`)
-		version = r.FindString(content)
-	})
-
-	return version, nil
 }
