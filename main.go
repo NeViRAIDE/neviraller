@@ -1,31 +1,52 @@
+// TODO: color logs
 package main
 
 import (
 	"bufio"
 	"fmt"
+	"github.com/RAprogramm/neviraide-install/neovim_nightly"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 )
 
+func requestSudo() {
+	cmd := exec.Command("sudo", "-v")
+	if err := cmd.Run(); err != nil {
+		fmt.Println("Failed to obtain sudo privileges. Please ensure you have the correct permissions.")
+		os.Exit(1)
+	}
+}
+
 // greeting displays a welcome message and asks the user for confirmation
 // to continue with the installation.
 func greeting() bool {
+	reader := bufio.NewReader(os.Stdin)
 	fmt.Println("Welcome to the NEVIRAIDE installer!")
 	fmt.Println("This script will check for required dependencies and install them if they're missing.")
 	fmt.Println("It will also set up the NEVIRAIDE configuration for Neovim.")
 	fmt.Println("")
 
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Would you like to continue with the installation? [y/n]: ")
-	answer, err := reader.ReadString('\n')
+	fmt.Print("Would you like to install latest pre-release of Neovim nighly? [y/n]: ")
+	answer1, err := reader.ReadString('\n')
 	if err != nil {
 		fmt.Println("Error reading input:", err)
 		os.Exit(1)
 	}
-	answer = strings.TrimSpace(answer)
-	if answer != "y" {
+	answer1 = strings.TrimSpace(answer1)
+	if answer1 == "y" {
+		neovimnightly.InstallNeovim()
+	}
+
+	fmt.Print("Would you like to continue with the installation? [y/n]: ")
+	answer2, err := reader.ReadString('\n')
+	if err != nil {
+		fmt.Println("Error reading input:", err)
+		os.Exit(1)
+	}
+	answer2 = strings.TrimSpace(answer2)
+	if answer2 != "y" {
 		fmt.Println("Installation canceled by the user.")
 		return false
 	}
@@ -48,7 +69,7 @@ func checkCommandsAvailability(names map[string]string) []string {
 // checkSudo checks if sudo is available
 func checkSudo() bool {
 	cmd := exec.Command("command", "-v", "sudo")
-	return cmd.Run() == nil
+	return cmd.Run() != nil
 }
 
 // installWithPacman installs the provided package using pacman.
@@ -69,13 +90,17 @@ func main() {
 		os.Exit(0)
 	}
 
+	requestSudo()
+
 	if !checkSudo() {
 		fmt.Println("sudo is not available or you don't have sudo privileges.")
 		os.Exit(1)
 	}
 
 	dependencies := map[string]string{
-		"neovim":  "nvim",
+		// TODO: neovim nightly form script
+
+		// "neovim":  "nvim",
 		"git":     "git",
 		"ripgrep": "rg",
 		"fd":      "fd",
