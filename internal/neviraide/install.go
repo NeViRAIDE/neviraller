@@ -15,8 +15,12 @@ const (
 )
 
 func Install() {
-    // FIX: remove if exist
+	if _, err := os.Stat(cloneDir); !os.IsNotExist(err) {
+		os.RemoveAll(cloneDir)
+	}
+
 	fmt.Println("Cloning NEVIRAIDE repository...")
+
 	_, err := exec.Command("git", "clone", "--depth", "1", repoURL, cloneDir).Output()
 	if err != nil {
 		fmt.Printf("Cloning repository error: %v\n", err)
@@ -31,7 +35,7 @@ func Install() {
 	}
 	configDir := filepath.Join(homeDir, ".config/nvim")
 
-    ui.ExistDir(configDir)
+	ui.ExistDir(configDir)
 
 	err = exec.Command("cp", "-r", cloneDir, configDir).Run()
 	if err != nil {

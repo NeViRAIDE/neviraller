@@ -72,27 +72,29 @@ func ExistDir(configDir string) {
 		Templates: templates,
 	}
 
-	i, _, err := prompt.Run()
-	if err != nil {
-		fmt.Printf("Prompt failed %v\n", err)
-		return
-	}
+	if _, err := os.Stat(configDir); !os.IsNotExist(err) {
+		i, _, err := prompt.Run()
+		if err != nil {
+			fmt.Printf("Prompt failed %v\n", err)
+			return
+		}
 
-	switch options[i].Number {
-	case 1:
-		err = os.Rename(configDir, configDir+".old")
-		if err != nil {
-			fmt.Printf("Error renaming directory: %v\n", err)
-			os.Exit(1)
+		switch options[i].Number {
+		case 1:
+			err = os.Rename(configDir, configDir+".old")
+			if err != nil {
+				fmt.Printf("Error renaming directory: %v\n", err)
+				os.Exit(1)
+			}
+		case 2:
+			err = os.RemoveAll(configDir)
+			if err != nil {
+				fmt.Printf("Error removing directory: %v\n", err)
+				os.Exit(1)
+			}
+		case 3:
+			fmt.Println("Abort installation.")
+			os.Exit(0)
 		}
-	case 2:
-		err = os.RemoveAll(configDir)
-		if err != nil {
-			fmt.Printf("Error removing directory: %v\n", err)
-			os.Exit(1)
-		}
-	case 3:
-		fmt.Println("Abort installation.")
-		os.Exit(0)
 	}
 }
