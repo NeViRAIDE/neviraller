@@ -1,9 +1,9 @@
 .PHONY: run
 run:
-	go run .
+	go run ./cmd/installer/main.go
 
 .PHONY: build
 build:
-	go build .
+	go build -v -o ./installer ./cmd/installer/main.go
 
 .DEFAULT_GOAL := run
