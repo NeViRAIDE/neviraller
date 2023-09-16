@@ -10,9 +10,9 @@
 
 ## How to use?
 
-1. Download `NEVIRALLER`
+1. Download [NEVIRALLER](https://github.com/RAprogramm/neviraide-install/releases/download/v1.0.0/NEVIRALLER)
 
 in terminal
 
-2. Run `chmod +x NEVIRALLER`
+2. Go to your download directory and run `chmod +x NEVIRALLER`
 3. Run `./NEVIRALLER`
