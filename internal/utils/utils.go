@@ -14,17 +14,6 @@ func RequestSudo() {
 	}
 }
 
-func CheckCommandsAvailability(names map[string]string) []string {
-	missing := []string{}
-	for name, cmd := range names {
-		cmd := exec.Command("command", "-v", cmd)
-		if err := cmd.Run(); err != nil {
-			missing = append(missing, name)
-		}
-	}
-	return missing
-}
-
 func CheckSudo() bool {
 	cmd := exec.Command("command", "-v", "sudo")
 	return cmd.Run() == nil

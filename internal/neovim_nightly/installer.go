@@ -57,6 +57,7 @@ func InstallNeovim() {
 	if currNvimVer == newNvimVer {
 		fmt.Printf("You already have latest version: %s\n", currNvimVer)
 		fmt.Println("NOT FOUND new version of Neovim Nightly!")
+		fmt.Println("")
 		return
 	}
 
