@@ -8,12 +8,12 @@ type Dep struct {
 }
 
 var Dependencies = []Dep{
-	{false, "git", "git", "Work with git"},
-	{false, "ripgrep", "rg", "Telescope.nvim"},
-	{false, "fd", "fd", "Telescope.nvim"},
-	{false, "unzip", "unzip", "Mason.nvim"},
-	{false, "tar", "tar", "Mason.nvim"},
-	{false, "wget", "wget", "Mason.nvim"},
 	{false, "curl", "curl", "Mason.nvim"},
+	{false, "fd", "fd", "Telescope.nvim"},
+	{false, "git", "git", "Work with git"},
 	{false, "npm", "npm", "Mason.nvim"},
+	{false, "ripgrep", "rg", "Telescope.nvim"},
+	{false, "tar", "tar", "Mason.nvim"},
+	{false, "unzip", "unzip", "Mason.nvim"},
+	{false, "wget", "wget", "Neovim Nightly updater"},
 }

@@ -32,9 +32,9 @@ func Check() int {
 	}
 
 	for _, dep := range missingDeps {
-		icon := utils.Red("✗")
+		icon := utils.Color("red", "", "✗")
 		if dep.Exist {
-			icon = utils.Green("✓")
+			icon = utils.Color("green", "", "✓")
 		}
 		r := []*simpletable.Cell{
 			{Text: icon},
@@ -52,7 +52,7 @@ func Check() int {
 				{},
 				{},
 				{},
-				{Align: simpletable.AlignRight, Text: utils.Red("%d out of %d is missing", missingCount, len(Dependencies))},
+				{Align: simpletable.AlignRight, Text: utils.Color("red", "", "%d out of %d is missing", missingCount, len(Dependencies))},
 			},
 		}
 	} else {
@@ -69,7 +69,7 @@ func Check() int {
 	table.SetStyle(simpletable.StyleCompactLite)
 	fmt.Printf("%s\n\n", table.String())
 
-    return missingCount
+	return missingCount
 }
 
 func checkCommandsAvailability() []Dep {
