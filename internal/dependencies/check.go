@@ -61,7 +61,7 @@ func Check() []Dep {
 				{},
 				{},
 				{},
-				{Align: simpletable.AlignRight, Text: "All dependencies are present"},
+				{Align: simpletable.AlignRight, Text: utils.Color("green", "bold", "All dependencies are present")},
 			},
 		}
 	}
@@ -73,20 +73,13 @@ func Check() []Dep {
 }
 
 func checkCommandsAvailability() []Dep {
-	missing := []Dep{}
-	for _, dep := range Dependencies {
-		cmd := exec.Command("which", dep.Command)
-		depExist := Dep{
-			Name:       dep.Name,
-			Command:    dep.Command,
-			RequiredBy: dep.RequiredBy,
-		}
+	for i := range Dependencies {
+		cmd := exec.Command("which", Dependencies[i].Command)
 		if err := cmd.Run(); err != nil {
-			depExist.Exist = false
+			Dependencies[i].Exist = false
 		} else {
-			depExist.Exist = true
+			Dependencies[i].Exist = true
 		}
-		missing = append(missing, depExist)
 	}
-	return missing
+	return Dependencies
 }

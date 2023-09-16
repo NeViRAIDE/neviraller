@@ -46,10 +46,17 @@ Loop:
 			fmt.Print(utils.Color("red", "italic", "Prompt failed %v\n", err))
 			return
 		}
+
 		switch options[i].Number {
 		case 1:
 			missingDeps := dependencies.Check()
-			if len(missingDeps) > 0 {
+			missingCount := 0
+			for _, dep := range missingDeps {
+				if !dep.Exist {
+					missingCount++
+				}
+			}
+			if missingCount > 0 {
 				if utils.Confirm("Would you like to install missing dependencies") {
 					for _, dep := range missingDeps {
 						if !dep.Exist {
