@@ -1,7 +1,7 @@
 <div align="center">
 <h1>NEVIRALLER</h1>
 <h3>For ArchLinux</h3>
-<p>This is 2 in 1 - Neovim Nightly Updater and NEVIRAIDE installer!</p>
+<p>This is 2 in 1 - <a href="https://github.com/neovim/neovim">Neovim</a> Nightly Updater and <a href="https://github.com/RAprogramm/NEVIRAIDE">NEVIRAIDE</a> installer!</p>
 </div>
 
 ---
