@@ -47,7 +47,12 @@ Loop:
 		}
 		switch options[i].Number {
 		case 1:
-			dependencies.Check()
+			missingCount := dependencies.Check()
+			if missingCount > 0 {
+				if confirm("Would you like to install missing dependencies") {
+					break Loop
+				}
+			}
 		case 2:
 			neovim.InstallNeovim()
 		case 3:
@@ -56,22 +61,27 @@ Loop:
 			neovim.InstallNeovim()
 			install_func()
 		case 5:
-			prompt := promptui.Prompt{
-				Label:     "Exit from intallation",
-				IsConfirm: true,
-			}
-
-			_, err := prompt.Run()
-			if err != nil {
-				if err == promptui.ErrAbort {
-					continue Loop
-				}
-				fmt.Printf("Prompt failed %v\n", err)
-			} else {
+			if confirm("Exit from intallation") {
 				break Loop
 			}
 		}
 	}
+}
+
+func confirm(text string) bool {
+	prompt := promptui.Prompt{
+		Label:     text,
+		IsConfirm: true,
+	}
+	_, err := prompt.Run()
+	if err != nil {
+		if err == promptui.ErrAbort {
+			return false
+		}
+		fmt.Printf("Prompt failed %v\n", err)
+		return false
+	}
+	return true
 }
 
 func ExistDir(configDir string) {

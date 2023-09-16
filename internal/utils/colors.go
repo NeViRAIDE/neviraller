@@ -10,15 +10,15 @@ const (
 	ColorGray    = "\x1b[90m"
 )
 
-func Red(s string, arg ...interface{}) string {
-	return fmt.Sprintf(ColorRed+s+ColorDefault, arg...)
+func Red(s string, args ...interface{}) string {
+	return fmt.Sprintf(ColorRed+s+ColorDefault, args...)
 }
-func Green(s string, arg ...interface{}) string {
-	return fmt.Sprintf(ColorGreen+s+ColorDefault, arg...)
+func Green(s string, args ...interface{}) string {
+	return fmt.Sprintf(ColorGreen+s+ColorDefault, args...)
 }
-func Blue(s string, arg ...interface{}) string {
-	return fmt.Sprintf(ColorBlue+s+ColorDefault, arg...)
+func Blue(s string, args ...interface{}) string {
+	return fmt.Sprintf(ColorBlue+s+ColorDefault, args...)
 }
-func Gray(s string, arg ...interface{}) string {
-	return fmt.Sprintf(ColorGray+s+ColorDefault, arg...)
+func Gray(s string, args ...interface{}) string {
+	return fmt.Sprintf(ColorGray+s+ColorDefault, args...)
 }
