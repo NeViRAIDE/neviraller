@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/RAprogramm/neviraide-install/internal/ui"
+	"github.com/RAprogramm/neviraide-install/internal/utils"
 )
 
 const (
@@ -19,18 +20,18 @@ func Install() {
 		os.RemoveAll(cloneDir)
 	}
 
-	fmt.Println("Cloning NEVIRAIDE repository...")
+	fmt.Println(utils.Color("grey", "italic", "Cloning NEVIRAIDE repository..."))
 
 	_, err := exec.Command("git", "clone", "--depth", "1", repoURL, cloneDir).Output()
 	if err != nil {
-		fmt.Printf("Cloning repository error: %v\n", err)
+		fmt.Print(utils.Color("red", "italic", "Cloning repository error: %v\n", err))
 		return
 	}
-	fmt.Println("Repository cloned successfully!")
+	fmt.Println(utils.Color("grey", "italic", "Repository cloned successfully!"))
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		fmt.Printf("Error getting home directory: %v\n", err)
+		fmt.Print(utils.Color("red", "italic", "Error getting home directory: %v\n", err))
 		return
 	}
 	configDir := filepath.Join(homeDir, ".config/nvim")
@@ -39,11 +40,11 @@ func Install() {
 
 	err = exec.Command("cp", "-r", cloneDir, configDir).Run()
 	if err != nil {
-		fmt.Printf("Error copying configuration files: %v\n", err)
+		fmt.Print(utils.Color("red", "italic", "Error copying configuration files: %v\n", err))
 		return
 	}
 
 	os.RemoveAll(cloneDir)
 
-	fmt.Println("NEVIRAIDE was successfully installed!")
+	fmt.Println(utils.Color("green", "italic", "NEVIRAIDE was successfully installed!"))
 }
