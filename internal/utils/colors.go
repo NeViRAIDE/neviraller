@@ -12,7 +12,7 @@ var colors = map[string]string{
 	"red":   "\x1b[91m",
 	"green": "\x1b[32m",
 	"blue":  "\x1b[94m",
-	"gray":  "\x1b[90m",
+	"grey":  "\x1b[90m",
 }
 
 var styles = map[string]string{
