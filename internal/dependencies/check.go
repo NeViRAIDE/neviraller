@@ -8,7 +8,7 @@ import (
 	"github.com/alexeyco/simpletable"
 )
 
-func Check() int {
+func Check() []Dep {
 	utils.RequestSudo()
 
 	missingDeps := checkCommandsAvailability()
@@ -69,7 +69,7 @@ func Check() int {
 	table.SetStyle(simpletable.StyleCompactLite)
 	fmt.Printf("%s\n\n", table.String())
 
-	return missingCount
+	return missingDeps
 }
 
 func checkCommandsAvailability() []Dep {

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+
+	"github.com/manifoldco/promptui"
 )
 
 func RequestSudo() {
@@ -17,4 +19,20 @@ func RequestSudo() {
 func CheckSudo() bool {
 	cmd := exec.Command("command", "-v", "sudo")
 	return cmd.Run() == nil
+}
+
+func Confirm(text string) bool {
+	prompt := promptui.Prompt{
+		Label:     text,
+		IsConfirm: true,
+	}
+	_, err := prompt.Run()
+	if err != nil {
+		if err == promptui.ErrAbort {
+			return false
+		}
+		fmt.Print(Color("red", "italic", "Prompt failed %v\n", err))
+		return false
+	}
+	return true
 }

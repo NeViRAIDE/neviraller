@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/RAprogramm/neviraide-install/internal/dependencies"
+	"github.com/RAprogramm/neviraide-install/internal/utils"
 	"github.com/manifoldco/promptui"
 
 	neovim "github.com/RAprogramm/neviraide-install/internal/neovim_nightly"
@@ -42,15 +43,19 @@ Loop:
 
 		i, _, err := prompt.Run()
 		if err != nil {
-			fmt.Printf("Prompt failed %v\n", err)
+			fmt.Print(utils.Color("red", "italic", "Prompt failed %v\n", err))
 			return
 		}
 		switch options[i].Number {
 		case 1:
-			missingCount := dependencies.Check()
-			if missingCount > 0 {
-				if confirm("Would you like to install missing dependencies") {
-					break Loop
+			missingDeps := dependencies.Check()
+			if len(missingDeps) > 0 {
+				if utils.Confirm("Would you like to install missing dependencies") {
+					for _, dep := range missingDeps {
+						if !dep.Exist {
+							dependencies.InstallWithPacman(dep.Name)
+						}
+					}
 				}
 			}
 		case 2:
@@ -61,27 +66,11 @@ Loop:
 			neovim.InstallNeovim()
 			install_func()
 		case 5:
-			if confirm("Exit from intallation") {
+			if utils.Confirm("Exit from intallation") {
 				break Loop
 			}
 		}
 	}
-}
-
-func confirm(text string) bool {
-	prompt := promptui.Prompt{
-		Label:     text,
-		IsConfirm: true,
-	}
-	_, err := prompt.Run()
-	if err != nil {
-		if err == promptui.ErrAbort {
-			return false
-		}
-		fmt.Printf("Prompt failed %v\n", err)
-		return false
-	}
-	return true
 }
 
 func ExistDir(configDir string) {
@@ -102,7 +91,7 @@ Loop:
 		if _, err := os.Stat(configDir); !os.IsNotExist(err) {
 			i, _, err := prompt.Run()
 			if err != nil {
-				fmt.Printf("Prompt failed %v\n", err)
+				fmt.Print(utils.Color("red", "italic", "Prompt failed %v\n", err))
 				return
 			}
 
@@ -110,17 +99,17 @@ Loop:
 			case 1:
 				err = os.Rename(configDir, configDir+".old")
 				if err != nil {
-					fmt.Printf("Error renaming directory: %v\n", err)
+					fmt.Print(utils.Color("red", "italic", "Error renaming directory %v\n", err))
 					os.Exit(1)
 				}
 			case 2:
 				err = os.RemoveAll(configDir)
 				if err != nil {
-					fmt.Printf("Error removing directory: %v\n", err)
+					fmt.Print(utils.Color("red", "italic", "Error removing directory %v\n", err))
 					os.Exit(1)
 				}
 			case 3:
-				fmt.Println("Abort installation.")
+				fmt.Println(utils.Color("grey", "italic", "Abort installation..."))
 				break Loop
 			}
 		}

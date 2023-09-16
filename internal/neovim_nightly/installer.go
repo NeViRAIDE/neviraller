@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/RAprogramm/neviraide-install/internal/scrap"
+	"github.com/RAprogramm/neviraide-install/internal/utils"
 )
 
 const nvimDownloadURL = "https://github.com/neovim/neovim/releases/download/nightly/nvim.appimage"
@@ -55,19 +56,16 @@ func InstallNeovim() {
 	currNvimVer := strings.Split(string(out), "\n")[0]
 
 	if currNvimVer == newNvimVer {
-		fmt.Printf("You already have latest version: %s\n", currNvimVer)
-		fmt.Println("NOT FOUND new version of Neovim Nightly!")
+		fmt.Print(utils.Color("green", "", "\nYou already have latest version: %s\n", currNvimVer))
+		fmt.Println(utils.Color("red", "bold", "NOT FOUND new version of Neovim Nightly!"))
 		fmt.Println("")
 		return
 	}
 
-	fmt.Printf("New Neovim Nightly version found!\n%s -> %s\n", currNvimVer, newNvimVer)
+	fmt.Print(utils.Color("blue", "italic", "\nNew Neovim Nightly version found!\n"))
+	fmt.Print(utils.Color("grey", "italic", "%s -> %s\n\n", currNvimVer, newNvimVer))
 
-	var input string
-	fmt.Print("Do you wish to update neovim? [yes/no] ")
-	fmt.Scanln(&input)
-
-	if strings.ToLower(input) == "yes" || strings.ToLower(input) == "y" {
+	if utils.Confirm("Do you wish to update neovim") {
 		resp, err := http.Get(nvimDownloadURL)
 		if err != nil {
 			log.Fatalf("Error downloading Neovim Nightly: %v", err)
@@ -94,6 +92,7 @@ func InstallNeovim() {
 		cmd = exec.Command("sudo", "mv", "/tmp/nvim", "/usr/bin")
 		cmd.Run()
 
-		fmt.Println("Neovim Nightly has been updated successfully!")
+		fmt.Print(utils.Color("green", "italic", "\nNeovim Nightly has been updated successfully!\n"))
 	}
+
 }
