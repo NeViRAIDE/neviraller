@@ -1,0 +1,10 @@
+[package]
+name = "neviraide-install"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+chrono = "0.4.33"
+reqwest = { version = "0.11.24", features=["json"] }
+scraper = "0.18.1"
+tokio = { version = "1.36.0", features = ["full"] }
