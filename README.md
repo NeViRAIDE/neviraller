@@ -1,18 +1,35 @@
-<div align="center">
-<h1>NEVIRALLER</h1>
-<h3>For ArchLinux</h3>
-<p>This is 2 in 1 - <a href="https://github.com/neovim/neovim">Neovim</a> Nightly Updater and <a href="https://github.com/RAprogramm/NEVIRAIDE">NEVIRAIDE</a> installer!</p>
-</div>
+# NEVIRALLER
+
+<!--toc:start-->
+- [NEVIRALLER](#neviraller)
+  - [TODO](#todo)
+    - [Main](#main)
+    - [Process](#process)
+<!--toc:end-->
 
 ---
 
-![](./screenshot.png)
+## TODO
 
-## How to use?
-
-1. Download [NEVIRALLER](https://github.com/RAprogramm/neviraide-install/releases/download/v1.0.0/NEVIRALLER)
-
-in terminal
-
-2. Go to your download directory and run `chmod +x NEVIRALLER`
-3. Run `./NEVIRALLER`
+### Main
+- [ ] TUI or CLI
+- [ ] AUR package
+### Process
+- [ ] check OS, DE 
+- [x] check installed neovim version
+- [ ] check NEVIRAIDE version
+    - if installed
+        - [ ] check updates neovim version
+        - [ ] check updates NEVIRAIDE version
+    - if NOT installed
+        - [ ] compare neovim nightly and neovim versions
+        - [ ] user choice - nightly or stable
+        - [ ] check all neviraide dependencies
+        - [ ] show info about deps
+            - after users version choice 
+                - if nightly
+                    - [x] check latest neovim nightly version
+                    - [x] download and and install
+                - if stable
+                    - [ ] check latest neovim stable version
+                    - [ ] download and and install

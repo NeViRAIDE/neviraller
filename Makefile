@@ -1,9 +1,11 @@
-.PHONY: run
 run:
-	go run ./cmd/installer/main.go
+	cargo run
 
-.PHONY: build
+dev:
+	cargo watch -x run
+
 build:
-	go build -v -o ./bin/NEVIRALLER ./cmd/installer/main.go
+	cargo build
 
-.DEFAULT_GOAL := run
+release:
+	cargo build --release
