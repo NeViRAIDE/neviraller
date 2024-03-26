@@ -1,17 +1,15 @@
-use reqwest;
 use scraper::{Html, Selector};
 use std::error::Error;
 use std::io::{self, Write};
 use std::process::Command;
 use std::str;
-use tokio;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let version = scrap().await?;
 
-    let _ver = check_neovim_version(&version).await?;
-    let _offer = offer_update(&version).await?;
+    check_neovim_version(&version).await?;
+    offer_update(&version).await?;
 
     Ok(())
 }
@@ -49,19 +47,18 @@ async fn check_neovim_version(new_version_line: &str) -> Result<(), Box<dyn std:
         .nth(1)
         .ok_or("Failed to parse current Neovim version")?;
 
-    println!("Current installed Neovim version: {:?}", current_version);
+    println!("Current installed Neovim version: {}", current_version);
 
     let new_version = new_version_line.lines().next().ok_or("problem1")?;
 
     if current_version == new_version {
         println!("You are already using the latest Neovim version");
         return Err("Already up to date".into());
-    } else {
-        println!(
-            "There is a newer version of Neovim Nightly available: {}",
-            new_version
-        );
     }
+    println!(
+        "There is a newer version of Neovim Nightly available: {}",
+        new_version
+    );
 
     Ok(())
 }
@@ -102,13 +99,13 @@ async fn update_neovim() -> Result<(), Box<dyn std::error::Error>> {
         Command::new("sudo")
             .arg("chmod")
             .arg("+x")
-            .arg(&path)
+            .arg(path)
             .status()
             .expect("Failed to execute chmod");
 
         Command::new("sudo")
             .arg("mv")
-            .arg(&path)
+            .arg(path)
             .arg("/usr/local/bin/nvim")
             .status()
             .expect("Failed to move file to /usr/local/bin");
