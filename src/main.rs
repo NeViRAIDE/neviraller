@@ -1,15 +1,17 @@
-use self::neovim_nightly::scrap::scrap;
-use self::neovim_nightly::update_offer::offer_update;
-use self::neovim_nightly::ver_compare::check_neovim_version;
+use color_eyre::Result;
 
-mod neovim_nightly;
+use self::tui::{
+    errors::install_hooks,
+    neviraller::Neviraller,
+    tui::{init_term, restore_term},
+};
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let version = scrap().await?;
+mod tui;
 
-    check_neovim_version(&version).await?;
-    offer_update(&version).await?;
-
-    Ok(())
+fn main() -> Result<()> {
+    install_hooks()?;
+    let mut terminal = init_term()?;
+    let app_result = Neviraller::default().run(&mut terminal);
+    restore_term()?;
+    app_result
 }
