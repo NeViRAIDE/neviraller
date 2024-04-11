@@ -15,7 +15,7 @@ use super::menu::{self, Menu, MenuAction};
 //     scrap::scrap, update::update_neovim, ver_compare::check_neovim_version,
 // };
 
-struct App {
+pub struct App {
     menu: Menu,
     show_update_message: bool,
     update_message: String,
@@ -35,6 +35,74 @@ impl App {
             show_update_message: false,
             update_message: String::new(),
             should_quit: false,
+        }
+    }
+
+    pub async fn run<B: ratatui::backend::Backend>(
+        &mut self,
+        terminal: &mut Terminal<B>,
+        mut rx: mpsc::Receiver<Action>,
+    ) -> Result<()> {
+        loop {
+            terminal.draw(|f| {
+                self.menu.render(f); // Использование метода render для отрисовки меню
+
+                if self.show_update_message {
+                    self.render_update_message(f, f.size()); // Теперь render_update_message - метод App
+                }
+            })?;
+
+            if let Some(action) = rx.recv().await {
+                match action {
+                    Action::Select => {
+                        let selected_action = self.menu.select(); // Получение выбранного действия из меню
+                        self.handle_action(selected_action); // Обработка выбранного действия
+                    }
+                    Action::Next => self.menu.next(), // Переход к следующему элементу меню
+                    Action::Previous => self.menu.previous(), // Переход к предыдущему элементу меню
+                }
+            }
+
+            if self.should_quit {
+                break;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn handle_action(&mut self, action: MenuAction) {
+        match action {
+            MenuAction::InstallNeovimNightly => {
+                self.update_message = "установка обновлений Neovim...".to_string();
+                self.show_update_message = true;
+            }
+            MenuAction::CheckForUpdates => {
+                self.update_message = "Проверка доступных обновлений...".to_string();
+                self.show_update_message = true;
+            }
+            MenuAction::CheckDependencies => {
+                self.update_message = "Check dependencies...".to_string();
+                self.show_update_message = true;
+            }
+            MenuAction::Quit => {
+                self.should_quit = true;
+            }
+        }
+    }
+
+    fn render_update_message(&self, frame: &mut Frame, area: ratatui::layout::Rect) {
+        if self.show_update_message {
+            let message_block = Block::default()
+                .title("Update Information")
+                .borders(Borders::ALL)
+                .style(ratatui::style::Style::default().fg(ratatui::style::Color::LightCyan));
+            let message_area =
+                ratatui::layout::Rect::new(area.x + 40, area.y + 2, area.width / 2, 3);
+            let paragraph = ratatui::widgets::Paragraph::new(self.update_message.clone())
+                .block(message_block)
+                .alignment(ratatui::layout::Alignment::Center);
+            frame.render_widget(paragraph, message_area);
         }
     }
 }
@@ -57,73 +125,5 @@ pub async fn event_handler(tx: mpsc::Sender<Action>) {
                 }
             }
         }
-    }
-}
-
-pub async fn run_app<B: ratatui::backend::Backend>(
-    terminal: &mut Terminal<B>,
-    mut rx: mpsc::Receiver<Action>,
-) -> Result<()> {
-    let mut app = App::new();
-
-    loop {
-        terminal.draw(|f| {
-            app.menu.render(f);
-
-            if app.show_update_message {
-                render_update_message(f, &app, f.size());
-            }
-        })?;
-
-        if let Some(action) = rx.recv().await {
-            match action {
-                Action::Select => {
-                    let selected_action = app.menu.select();
-                    handle_action(&mut app, selected_action);
-                }
-                Action::Next => app.menu.next(),
-                Action::Previous => app.menu.previous(),
-            }
-        }
-
-        if app.should_quit {
-            break;
-        }
-    }
-
-    Ok(())
-}
-
-fn handle_action(app: &mut App, action: MenuAction) {
-    match action {
-        MenuAction::InstallNeovimNightly => {
-            app.update_message = "установка обновлений Neovim...".to_string();
-            app.show_update_message = true;
-        }
-        MenuAction::CheckForUpdates => {
-            app.update_message = "Проверка доступных обновлений...".to_string();
-            app.show_update_message = true;
-        }
-        MenuAction::CheckDependencies => {
-            app.update_message = "Check dependencies...".to_string();
-            app.show_update_message = true;
-        }
-        MenuAction::Quit => {
-            app.should_quit = true;
-        }
-    }
-}
-
-fn render_update_message(f: &mut Frame, app: &App, area: ratatui::layout::Rect) {
-    if app.show_update_message {
-        let message_block = Block::default()
-            .title("Update Information")
-            .borders(Borders::ALL)
-            .style(ratatui::style::Style::default().fg(ratatui::style::Color::LightCyan));
-        let message_area = ratatui::layout::Rect::new(area.x + 40, area.y + 2, area.width / 2, 3);
-        let paragraph = ratatui::widgets::Paragraph::new(app.update_message.clone())
-            .block(message_block)
-            .alignment(ratatui::layout::Alignment::Center);
-        f.render_widget(paragraph, message_area);
     }
 }
