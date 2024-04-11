@@ -1,3 +1,2 @@
-pub mod errors;
-pub mod neviraller;
-pub mod tui;
+pub mod app;
+pub mod menu;
