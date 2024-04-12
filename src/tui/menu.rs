@@ -1,4 +1,5 @@
 use ratatui::{
+    layout::Rect,
     widgets::{Block, Borders, List, ListItem, ListState},
     Frame,
 };
@@ -81,15 +82,17 @@ impl Menu {
         self.items[self.state.selected().unwrap_or(0)].action
     }
 
-    pub fn render(&self, frame: &mut Frame) {
+    pub fn render(&self, frame: &mut Frame, area: Rect) {
         let items: Vec<ListItem> = self
             .items
             .iter()
             .map(|item| ListItem::new(item.name.clone()))
             .collect();
+
         let list = List::new(items)
             .block(Block::default().borders(Borders::ALL).title("Menu"))
             .highlight_symbol(">> ");
-        frame.render_stateful_widget(list, frame.size(), &mut self.state.clone());
+
+        frame.render_stateful_widget(list, area, &mut self.state.clone());
     }
 }
