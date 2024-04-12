@@ -1,11 +1,13 @@
 use ratatui::{
-    layout::{Alignment, Rect},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
 
 use self::widgets::WidgetParams;
+
+use super::menu::Menu;
 
 pub mod widgets;
 
@@ -56,6 +58,21 @@ impl UI {
             .with_color(Color::Yellow)
             .with_alignment(Alignment::Center);
         self.render_widget(frame, area, &header_params);
+    }
+
+    pub fn render_menu(&self, frame: &mut Frame, area: Rect, menu: &Menu) {
+        let columns = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(30), Constraint::Percentage(70)])
+            .split(area);
+
+        menu.render(frame, columns[0]);
+        // Пример использования UI для отрисовки основного содержимого
+        let content_params =
+            WidgetParams::new("Here is the main content of the application".to_string())
+                .with_title("Content".to_string())
+                .with_color(Color::White);
+        self.render_widget(frame, columns[1], &content_params);
     }
 
     pub fn render_footer(&self, frame: &mut Frame, area: Rect) {

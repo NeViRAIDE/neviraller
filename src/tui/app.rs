@@ -1,19 +1,19 @@
 use std::time::Duration;
 
 use color_eyre::eyre::Result;
-use crossterm::event::{poll, read, Event, KeyCode};
+use crossterm::event::{poll, read, Event};
 use tokio::{sync::mpsc, time};
 
 use ratatui::{
     backend::Backend,
-    layout::{Constraint, Direction, Layout, Rect},
-    style::Color,
-    Frame, Terminal,
+    layout::{Constraint, Direction, Layout},
+    Terminal,
 };
 
 use super::{
+    keymaps::KeyBindings,
     menu::{self, Menu, MenuAction},
-    ui::{widgets::WidgetParams, UI},
+    ui::UI,
 };
 
 // use self::neovim_nightly::{
@@ -26,6 +26,7 @@ pub struct App {
     should_quit: bool,
 }
 
+#[derive(Clone)]
 pub enum Action {
     Select,
     Next,
@@ -61,18 +62,10 @@ impl App {
                     .split(size);
 
                 self.ui.render_header(f, chunks[0]);
-                self.render_main_area(f, chunks[1]);
+                self.ui.render_menu(f, chunks[1], &self.menu);
                 self.ui
                     .render_additional_info(f, chunks[2], &self.ui.update_message);
                 self.ui.render_footer(f, chunks[3]);
-
-                // let info_area = Rect::new(0, size.height / 2, size.width, size.height / 4); // Пример области для дополнительной информации
-                //
-                // self.ui.render_additional_info(
-                //     f,
-                //     info_area,
-                //     "Here is some additional information or logs.",
-                // );
             })?;
 
             if let Some(action) = rx.recv().await {
@@ -93,21 +86,6 @@ impl App {
         }
 
         Ok(())
-    }
-
-    fn render_main_area(&self, frame: &mut Frame, area: Rect) {
-        let columns = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(30), Constraint::Percentage(70)])
-            .split(area);
-
-        self.menu.render(frame, columns[0]);
-        // Пример использования UI для отрисовки основного содержимого
-        let content_params =
-            WidgetParams::new("Here is the main content of the application".to_string())
-                .with_title("Content".to_string())
-                .with_color(Color::White);
-        self.ui.render_widget(frame, columns[1], &content_params);
     }
 
     fn handle_action(&mut self, action: MenuAction) {
@@ -131,18 +109,16 @@ impl App {
     }
 }
 
-pub async fn event_handler(tx: mpsc::UnboundedSender<Action>) {
+// В модуле app.rs
+
+pub async fn event_handler(tx: mpsc::UnboundedSender<Action>, key_bindings: KeyBindings) {
     let mut interval = time::interval(Duration::from_millis(100));
     loop {
         interval.tick().await;
         if let Ok(true) = poll(Duration::from_millis(0)) {
             if let Ok(Event::Key(key)) = read() {
-                match key.code {
-                    KeyCode::Char('j' | 'n') | KeyCode::Down => tx.send(Action::Next).unwrap(),
-                    KeyCode::Char('k' | 'p') | KeyCode::Up => tx.send(Action::Previous).unwrap(),
-                    KeyCode::Enter => tx.send(Action::Select).unwrap(),
-                    KeyCode::Char('q') | KeyCode::Esc => tx.send(Action::Quit).unwrap(),
-                    _ => {}
+                if let Some(action) = key_bindings.get_action(key.code) {
+                    tx.send(action.clone()).unwrap();
                 }
             }
         }

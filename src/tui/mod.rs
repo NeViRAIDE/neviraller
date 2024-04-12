@@ -1,4 +1,5 @@
 pub mod app;
+pub mod keymaps;
 pub mod menu;
 pub mod ui;
 
@@ -12,7 +13,7 @@ use tokio::sync::mpsc;
 use ratatui::{backend::CrosstermBackend, Terminal};
 use std::{error::Error, io};
 
-use self::app::Action;
+use self::{app::Action, keymaps::KeyBindings};
 
 pub async fn run_term() -> Result<()> {
     terminal::enable_raw_mode()?;
@@ -21,11 +22,11 @@ pub async fn run_term() -> Result<()> {
 
     let backend = setup_backend();
     let mut terminal = setup_terminal(backend.unwrap()).unwrap();
-
+    let key_bindings = KeyBindings::new(); // Создание экземпляра KeyBindings
     let (tx, rx) = mpsc::unbounded_channel::<Action>();
 
     tokio::spawn(async move {
-        app::event_handler(tx).await;
+        app::event_handler(tx, key_bindings).await; // Передача key_bindings
     });
 
     let mut app = app::App::new();
