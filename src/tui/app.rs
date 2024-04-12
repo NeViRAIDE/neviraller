@@ -32,13 +32,14 @@ pub enum Action {
     Next,
     Previous,
     Quit,
+    Resize,
 }
 
 impl App {
     pub fn new(keys: KeyBindings) -> App {
         App {
             menu: Menu::new(menu::get_menu_items()),
-            ui: UI::new("Initial update message".to_string(), keys), 
+            ui: UI::new("Initial update message".to_string(), keys),
             should_quit: false,
         }
     }
@@ -76,6 +77,9 @@ impl App {
                     }
                     Action::Next => self.menu.next(),
                     Action::Previous => self.menu.previous(),
+                    Action::Resize => {
+                        self.update_ui(terminal)?;
+                    }
                     Action::Quit => self.should_quit = true,
                 }
             }
@@ -107,6 +111,30 @@ impl App {
             }
         }
     }
+
+    fn update_ui<B: Backend>(&self, terminal: &mut Terminal<B>) -> Result<()> {
+        terminal.draw(|f| {
+            let size = f.size();
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Length(3),
+                    Constraint::Percentage(50),
+                    Constraint::Percentage(45),
+                    Constraint::Length(2),
+                ])
+                .split(size);
+
+            self.ui.render_header(f, chunks[0]);
+            self.ui.render_menu(f, chunks[1], &self.menu);
+            if self.ui.show_update_message {
+                self.ui
+                    .render_additional_info(f, chunks[2], &self.ui.update_message);
+            }
+            self.ui.render_footer(f, chunks[3]);
+        })?;
+        Ok(())
+    }
 }
 
 pub async fn event_handler(tx: mpsc::UnboundedSender<Action>, key_bindings: KeyBindings) {
@@ -127,7 +155,7 @@ pub async fn event_handler(tx: mpsc::UnboundedSender<Action>, key_bindings: KeyB
                     // Обработка событий мыши
                 }
                 Ok(Event::Resize(_, _)) => {
-                    // Обработка изменения размера терминала
+                    tx.send(Action::Resize).unwrap();
                 }
                 Ok(Event::FocusGained) | Ok(Event::FocusLost) => {
                     // Обработка событий фокуса
