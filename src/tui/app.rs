@@ -26,7 +26,7 @@ pub struct App {
     should_quit: bool,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Action {
     Select,
     Next,

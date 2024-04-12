@@ -1,15 +1,21 @@
+use std::any::Any;
+
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Rect},
     style::{Color, Style},
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
 
-use self::widgets::WidgetParams;
+use self::{
+    panes::{footer::FooterPane, header::HeaderPane, menu::MenuPane, Pane},
+    widget_params::WidgetParams,
+};
 
 use super::menu::Menu;
 
-pub mod widgets;
+pub mod panes;
+pub mod widget_params;
 
 pub struct UI {
     pub update_message: String,
@@ -29,7 +35,7 @@ impl UI {
         self.show_update_message = true;
     }
 
-    pub fn clear_update_message(&mut self) {
+    pub fn _clear_update_message(&mut self) {
         self.show_update_message = false;
     }
 
@@ -51,37 +57,35 @@ impl UI {
         frame.render_widget(paragraph, area);
     }
 
-    // Определение методов для рендеринга header, footer и других общих элементов
     pub fn render_header(&self, frame: &mut Frame, area: Rect) {
-        let header_params = WidgetParams::new("NEVIRAIDE".to_string())
-            .with_title("Main Header".to_string())
-            .with_color(Color::Yellow)
-            .with_alignment(Alignment::Center);
-        self.render_widget(frame, area, &header_params);
-    }
-
-    pub fn render_menu(&self, frame: &mut Frame, area: Rect, menu: &Menu) {
-        let columns = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(30), Constraint::Percentage(70)])
-            .split(area);
-
-        menu.render(frame, columns[0]);
-        // Пример использования UI для отрисовки основного содержимого
-        let content_params =
-            WidgetParams::new("Here is the main content of the application".to_string())
-                .with_title("Content".to_string())
-                .with_color(Color::White);
-        self.render_widget(frame, columns[1], &content_params);
+        let header_pane = HeaderPane {};
+        header_pane.render(self, frame, area, None);
     }
 
     pub fn render_footer(&self, frame: &mut Frame, area: Rect) {
-        let footer_params = WidgetParams::new("Press 'q' or 'esc' to quit.".to_string())
-            .with_title("Footer".to_string())
-            .with_color(Color::Gray)
-            .with_alignment(Alignment::Center);
-        self.render_widget(frame, area, &footer_params);
+        let header_pane = FooterPane {};
+        header_pane.render(self, frame, area, None);
     }
+
+    pub fn render_menu(&self, frame: &mut Frame, area: Rect, menu: &Menu) {
+        let header_pane = MenuPane {};
+        header_pane.render(self, frame, area, Some(menu as &dyn Any));
+    }
+
+    // pub fn render_menu(&self, frame: &mut Frame, area: Rect, menu: &Menu) {
+    //     let columns = Layout::default()
+    //         .direction(Direction::Horizontal)
+    //         .constraints([Constraint::Percentage(30), Constraint::Percentage(70)])
+    //         .split(area);
+    //
+    //     menu.render(frame, columns[0]);
+    //     // Пример использования UI для отрисовки основного содержимого
+    //     let content_params =
+    //         WidgetParams::new("Here is the main content of the application".to_string())
+    //             .with_title("Content".to_string())
+    //             .with_color(Color::White);
+    //     self.render_widget(frame, columns[1], &content_params);
+    // }
 
     pub fn render_additional_info(&self, frame: &mut Frame, area: Rect, info_text: &str) {
         let info_params = WidgetParams::new(info_text.to_string())
