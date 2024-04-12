@@ -10,9 +10,7 @@ use crate::tui::ui::UI;
 
 use super::Pane;
 
-pub struct MenuPane {
-    // Параметры и состояние заголовка
-}
+pub struct MenuPane {}
 
 impl Pane for MenuPane {
     fn render(&self, ui: &UI, frame: &mut Frame, area: Rect, extra: Option<&dyn Any>) {
@@ -25,7 +23,6 @@ impl Pane for MenuPane {
             .split(area);
 
         menu.render(frame, columns[0]);
-        // Пример использования UI для отрисовки основного содержимого
         let content_params =
             WidgetParams::new("Here is the main content of the application".to_string())
                 .with_title("Content".to_string())

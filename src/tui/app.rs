@@ -26,7 +26,7 @@ pub struct App {
     should_quit: bool,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Action {
     Select,
     Next,
@@ -35,10 +35,10 @@ pub enum Action {
 }
 
 impl App {
-    pub fn new() -> App {
+    pub fn new(keys: KeyBindings) -> App {
         App {
             menu: Menu::new(menu::get_menu_items()),
-            ui: UI::new("Initial update message".to_string()), // Инициализация UI
+            ui: UI::new("Initial update message".to_string(), keys), 
             should_quit: false,
         }
     }
@@ -109,17 +109,36 @@ impl App {
     }
 }
 
-// В модуле app.rs
-
 pub async fn event_handler(tx: mpsc::UnboundedSender<Action>, key_bindings: KeyBindings) {
     let mut interval = time::interval(Duration::from_millis(100));
     loop {
         interval.tick().await;
         if let Ok(true) = poll(Duration::from_millis(0)) {
-            if let Ok(Event::Key(key)) = read() {
-                if let Some(action) = key_bindings.get_action(key.code) {
-                    tx.send(action.clone()).unwrap();
+            match read() {
+                Ok(Event::Key(key)) => {
+                    if let Some(action) = key_bindings.get_action(key.code) {
+                        if let Err(e) = tx.send(action.clone()) {
+                            eprintln!("Error sending action: {:?}", e);
+                            break;
+                        }
+                    }
                 }
+                Ok(Event::Mouse(_)) => {
+                    // Обработка событий мыши
+                }
+                Ok(Event::Resize(_, _)) => {
+                    // Обработка изменения размера терминала
+                }
+                Ok(Event::FocusGained) | Ok(Event::FocusLost) => {
+                    // Обработка событий фокуса
+                }
+                Ok(Event::Paste(_)) => {
+                    // Обработка вставки из буфера обмена
+                }
+                Err(e) => {
+                    eprintln!("Error reading event: {:?}", e);
+                    continue;
+                } // _ => {} // Обработка других неучтенных событий
             }
         }
     }

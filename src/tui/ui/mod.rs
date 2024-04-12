@@ -12,7 +12,7 @@ use self::{
     widget_params::WidgetParams,
 };
 
-use super::menu::Menu;
+use super::{keymaps::KeyBindings, menu::Menu};
 
 pub mod panes;
 pub mod widget_params;
@@ -20,13 +20,15 @@ pub mod widget_params;
 pub struct UI {
     pub update_message: String,
     pub show_update_message: bool,
+    pub key_bindings: KeyBindings,
 }
 
 impl UI {
-    pub fn new(update_message: String) -> Self {
+    pub fn new(update_message: String, key_bindings: KeyBindings) -> Self {
         Self {
             update_message,
             show_update_message: false,
+            key_bindings,
         }
     }
 
@@ -63,29 +65,14 @@ impl UI {
     }
 
     pub fn render_footer(&self, frame: &mut Frame, area: Rect) {
-        let header_pane = FooterPane {};
-        header_pane.render(self, frame, area, None);
+        let footer_pane = FooterPane {};
+        footer_pane.render(self, frame, area, Some(&self.key_bindings as &dyn Any));
     }
 
     pub fn render_menu(&self, frame: &mut Frame, area: Rect, menu: &Menu) {
-        let header_pane = MenuPane {};
-        header_pane.render(self, frame, area, Some(menu as &dyn Any));
+        let menu_pane = MenuPane {};
+        menu_pane.render(self, frame, area, Some(menu as &dyn Any));
     }
-
-    // pub fn render_menu(&self, frame: &mut Frame, area: Rect, menu: &Menu) {
-    //     let columns = Layout::default()
-    //         .direction(Direction::Horizontal)
-    //         .constraints([Constraint::Percentage(30), Constraint::Percentage(70)])
-    //         .split(area);
-    //
-    //     menu.render(frame, columns[0]);
-    //     // Пример использования UI для отрисовки основного содержимого
-    //     let content_params =
-    //         WidgetParams::new("Here is the main content of the application".to_string())
-    //             .with_title("Content".to_string())
-    //             .with_color(Color::White);
-    //     self.render_widget(frame, columns[1], &content_params);
-    // }
 
     pub fn render_additional_info(&self, frame: &mut Frame, area: Rect, info_text: &str) {
         let info_params = WidgetParams::new(info_text.to_string())

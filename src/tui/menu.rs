@@ -46,7 +46,7 @@ pub struct Menu {
 impl Menu {
     pub fn new(items: Vec<MenuItem>) -> Menu {
         let mut state = ListState::default();
-        state.select(Some(0)); // По умолчанию выбран первый пункт
+        state.select(Some(0));
         Menu { items, state }
     }
 

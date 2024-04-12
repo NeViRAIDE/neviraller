@@ -22,14 +22,17 @@ pub async fn run_term() -> Result<()> {
 
     let backend = setup_backend();
     let mut terminal = setup_terminal(backend.unwrap()).unwrap();
-    let key_bindings = KeyBindings::new(); // Создание экземпляра KeyBindings
+
+    let key_bindings = KeyBindings::new(); 
+    let cloned_bindings = key_bindings.clone();
+
     let (tx, rx) = mpsc::unbounded_channel::<Action>();
 
     tokio::spawn(async move {
-        app::event_handler(tx, key_bindings).await; // Передача key_bindings
+        app::event_handler(tx, cloned_bindings).await; 
     });
 
-    let mut app = app::App::new();
+    let mut app = app::App::new(key_bindings);
     app.run(&mut terminal, rx).await?;
 
     if let Err(e) = cleanup_terminal(&mut stdout) {

@@ -45,7 +45,7 @@ impl WidgetParams {
         self
     }
 
-    pub fn _with_modifier(mut self, modifier: Modifier) -> Self {
+    pub fn with_modifier(mut self, modifier: Modifier) -> Self {
         self.modifier = modifier;
         self
     }
