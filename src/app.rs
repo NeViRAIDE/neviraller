@@ -7,6 +7,7 @@ use tokio::sync::mpsc;
 
 use crate::components::footer::Footer;
 use crate::components::header::Header;
+use crate::components::info::Info;
 use crate::components::menu::Menu;
 use crate::components::Component;
 use crate::{action::Action, config::Config, mode::Mode, tui};
@@ -24,7 +25,7 @@ pub struct App {
 
 impl App {
     pub fn new(tick_rate: f64, frame_rate: f64) -> Result<Self> {
-        let home = Menu::new(vec![
+        let menu = Menu::new(vec![
             "Install Neovim".to_string(),
             "Install NEVIRAIDE".to_string(),
             "Check dependencies".to_string(),
@@ -32,13 +33,19 @@ impl App {
         ]);
         let header = Header::new("NEVIRALLER");
         let footer = Footer::new("© 2024 RAprogramm");
+        let info = Info::new("Info component");
         let config = Config::new()?;
         let mode = Mode::Home;
 
         Ok(Self {
             tick_rate,
             frame_rate,
-            components: vec![Box::new(header), Box::new(home), Box::new(footer)],
+            components: vec![
+                Box::new(header),
+                Box::new(menu),
+                Box::new(info),
+                Box::new(footer),
+            ],
             should_quit: false,
             should_suspend: false,
             config,
@@ -65,11 +72,25 @@ impl App {
             ])
             .split(size);
 
-        for (i, component) in self.components.iter_mut().enumerate() {
+        // Разделение основного меню на две части
+        let middle_chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage(30), // 50% для меню
+                Constraint::Percentage(70), // 50% для другого контента
+            ])
+            .split(chunks[1]);
+
+        for component in self.components.iter_mut() {
             component.register_action_handler(action_tx.clone())?;
             component.register_config_handler(self.config.clone())?;
-            component.init(chunks[i])?;
+            // let area = if i == 1 { middle_chunks[0] } else { chunks[i] };
+            // component.init(area)?;
         }
+        self.components[0].init(chunks[0])?; // Header
+        self.components[1].init(middle_chunks[0])?; // Menu
+        self.components[3].init(middle_chunks[1])?; // DetailsView
+        self.components[2].init(chunks[2])?; // Fo
 
         loop {
             if let Some(e) = tui.next().await {
@@ -118,27 +139,38 @@ impl App {
                     Action::Resume => self.should_suspend = false,
                     Action::Resize(w, h) => {
                         tui.resize(Rect::new(0, 0, w, h))?;
-                        tui.draw(|f| {
-                            for (i, component) in self.components.iter_mut().enumerate() {
-                                let r = component.draw(f, chunks[i]);
-                                if let Err(e) = r {
-                                    action_tx
-                                        .send(Action::Error(format!("Failed to draw: {:?}", e)))
-                                        .unwrap();
-                                }
-                            }
-                        })?;
+                        let size = tui.size()?;
+                        let chunks = Layout::default()
+                            .direction(Direction::Vertical)
+                            .margin(1)
+                            .constraints([
+                                Constraint::Length(3),
+                                Constraint::Min(10),
+                                Constraint::Length(3),
+                            ])
+                            .split(size);
+
+                        let middle_chunks = Layout::default()
+                            .direction(Direction::Horizontal)
+                            .constraints([
+                                Constraint::Percentage(50), // 50% для меню
+                                Constraint::Percentage(50), // 50% для Info
+                            ])
+                            .split(chunks[1]);
+
+                        // Переинициализация компонентов
+                        self.components[0].init(chunks[0])?;
+                        self.components[1].init(middle_chunks[0])?;
+                        self.components[2].init(middle_chunks[1])?;
+                        self.components[3].init(chunks[2])?;
                     }
                     Action::Render => {
+                        // Перерисовка интерфейса
                         tui.draw(|f| {
-                            for (i, component) in self.components.iter_mut().enumerate() {
-                                let r = component.draw(f, chunks[i]);
-                                if let Err(e) = r {
-                                    action_tx
-                                        .send(Action::Error(format!("Failed to draw: {:?}", e)))
-                                        .unwrap();
-                                }
-                            }
+                            self.components[0].draw(f, chunks[0]); // Header
+                            self.components[1].draw(f, middle_chunks[0]); // Menu
+                            self.components[2].draw(f, middle_chunks[1]); // Info
+                            self.components[3].draw(f, chunks[2]); // Footer
                         })?;
                     }
                     _ => {}
