@@ -1,15 +1,10 @@
-use std::{collections::HashMap, fmt, path::PathBuf};
+use std::{collections::HashMap, path::PathBuf};
 
 use color_eyre::eyre::Result;
-use config::Value;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use derive_deref::{Deref, DerefMut};
 use ratatui::style::{Color, Modifier, Style};
-use serde::{
-    de::{self, Deserializer, MapAccess, Visitor},
-    Deserialize, Serialize,
-};
-use serde_json::Value as JsonValue;
+use serde::{de::Deserializer, Deserialize};
 
 use crate::{action::Action, mode::Mode};
 
@@ -79,7 +74,7 @@ impl Config {
             for (style_key, style) in default_styles.iter() {
                 user_styles
                     .entry(style_key.clone())
-                    .or_insert_with(|| style.clone());
+                    .or_insert_with(|| *style);
             }
         }
 
@@ -214,7 +209,7 @@ pub fn key_event_to_string(key_event: &KeyEvent) -> String {
             char = format!("f({c})");
             &char
         }
-        KeyCode::Char(c) if c == ' ' => "space",
+        KeyCode::Char(' ') => "space",
         KeyCode::Char(c) => {
             char = c.to_string();
             &char

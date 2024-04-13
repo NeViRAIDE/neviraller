@@ -53,7 +53,6 @@ pub fn initialize_panic_handler() -> Result<()> {
                 error!("Unable to exit Terminal: {:?}", r);
             }
         }
-
         #[cfg(not(debug_assertions))]
         {
             use human_panic::{handle_dump, print_msg, Metadata};

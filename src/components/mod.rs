@@ -9,8 +9,10 @@ use crate::{
     tui::{Event, Frame},
 };
 
-pub mod fps;
-pub mod home;
+pub mod footer;
+// pub mod fps;
+pub mod header;
+pub mod menu;
 
 /// `Component` is a trait that represents a visual and interactive element of the user interface.
 /// Implementors of this trait can be registered with the main application loop and will be able to receive events,
@@ -52,6 +54,7 @@ pub trait Component {
     ///
     /// * `Result<()>` - An Ok result or an error.
     fn init(&mut self, area: Rect) -> Result<()> {
+        let _ = area;
         Ok(())
     }
     /// Handle incoming events and produce actions if necessary.
@@ -66,7 +69,6 @@ pub trait Component {
     fn handle_events(&mut self, event: Option<Event>) -> Result<Option<Action>> {
         let r = match event {
             Some(Event::Key(key_event)) => self.handle_key_events(key_event)?,
-            Some(Event::Mouse(mouse_event)) => self.handle_mouse_events(mouse_event)?,
             _ => None,
         };
         Ok(r)
