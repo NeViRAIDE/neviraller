@@ -6,6 +6,7 @@ use ratatui::{
 
 #[derive(Clone, Copy)]
 pub enum MenuAction {
+    InstallNEVIRAIDE,
     InstallNeovimNightly,
     CheckForUpdates,
     CheckDependencies,
@@ -20,7 +21,11 @@ pub struct MenuItem {
 pub fn get_menu_items() -> Vec<MenuItem> {
     vec![
         MenuItem {
-            name: "Install Neovim Nightly".to_string(),
+            name: "Install NEVIRAIDE".to_string(),
+            action: MenuAction::InstallNEVIRAIDE,
+        },
+        MenuItem {
+            name: "Install/update Neovim Nightly".to_string(),
             action: MenuAction::InstallNeovimNightly,
         },
         MenuItem {
@@ -28,7 +33,7 @@ pub fn get_menu_items() -> Vec<MenuItem> {
             action: MenuAction::CheckForUpdates,
         },
         MenuItem {
-            name: "Dependencies".to_string(),
+            name: "Check dependencies".to_string(),
             action: MenuAction::CheckDependencies,
         },
         MenuItem {

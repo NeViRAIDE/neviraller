@@ -17,6 +17,7 @@ use super::{keymaps::KeyBindings, menu::Menu};
 pub mod panes;
 pub mod widget_params;
 
+#[derive(Clone)]
 pub struct UI {
     pub update_message: String,
     pub show_update_message: bool,
@@ -32,8 +33,17 @@ impl UI {
         }
     }
 
+    // pub fn set_update_message(&mut self, message: String) {
+    //     self.update_message = message;
+    //     self.show_update_message = true;
+    // }
     pub fn set_update_message(&mut self, message: String) {
-        self.update_message = message;
+        // Добавляем новое сообщение, разделяя их переносом строки, если уже есть какой-то текст
+        self.update_message = if self.update_message.is_empty() {
+            message
+        } else {
+            format!("{}\n{}", self.update_message, message)
+        };
         self.show_update_message = true;
     }
 

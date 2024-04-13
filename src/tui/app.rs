@@ -94,6 +94,10 @@ impl App {
 
     fn handle_action(&mut self, action: MenuAction) {
         match action {
+            MenuAction::InstallNEVIRAIDE => {
+                self.ui
+                    .set_update_message("установка NEVIRAIDE...".to_string());
+            }
             MenuAction::InstallNeovimNightly => {
                 self.ui
                     .set_update_message("установка обновлений Neovim...".to_string());
@@ -104,7 +108,15 @@ impl App {
             }
             MenuAction::CheckDependencies => {
                 self.ui
-                    .set_update_message("Check dependencies...".to_string());
+                    .set_update_message("Checking package managers...".to_string());
+                let managers = crate::package_manager::detect_package_managers();
+                if !managers.is_empty() {
+                    self.ui
+                        .set_update_message(format!("Detected package managers: {:?}", managers));
+                } else {
+                    self.ui
+                        .set_update_message("No known package manager found.".to_string());
+                }
             }
             MenuAction::Quit => {
                 self.should_quit = true;
