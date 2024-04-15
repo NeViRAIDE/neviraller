@@ -23,3 +23,30 @@ pub struct Cli {
     )]
     pub frame_rate: f64,
 }
+
+// use clap::{Parser, Subcommand};
+
+// #[derive(Parser, Debug)]
+// #[command(author, version, about = "Utility to manage installations and updates")]
+// pub struct Cli {
+//     #[command(subcommand)]
+//     pub command: Commands,
+// }
+//
+// #[derive(Subcommand, Debug)]
+// pub enum Commands {
+//     /// Updates the Neovim installation to the latest version
+//     UpdateNeovim {
+//         #[arg(short, long, help = "Specify a version to update to, if not the latest")]
+//         version: Option<String>,
+//     },
+//
+//     /// Updates the NEVIRAIDE installation to the latest version
+//     UpdateNeviraide {
+//         #[arg(short, long, help = "Specify a version to update to, if not the latest")]
+//         version: Option<String>,
+//     },
+//
+//     /// Checks for missing dependencies required by the system
+//     CheckDependencies,
+// }

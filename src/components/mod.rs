@@ -13,11 +13,12 @@ pub mod footer;
 pub mod header;
 pub mod info;
 pub mod menu;
+pub mod progress;
 
 /// `Component` is a trait that represents a visual and interactive element of the user interface.
 /// Implementors of this trait can be registered with the main application loop and will be able to receive events,
 /// update state, and be rendered on the screen.
-pub trait Component {
+pub trait Component: Send + Sync {
     /// Register an action handler that can send actions for processing if necessary.
     ///
     /// # Arguments
@@ -123,4 +124,11 @@ pub trait Component {
     ///
     /// * `Result<()>` - An Ok result or an error.
     fn draw(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()>;
+
+    fn as_any(&mut self) -> &mut dyn std::any::Any;
+
+    // TODO: make default behavior
+    // fn as_any(&mut self) -> &mut dyn std::any::Any {
+    //     self
+    // }
 }

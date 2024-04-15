@@ -79,7 +79,7 @@ impl Component for Menu {
             Action::Select => {
                 let action = match self.menu_items[self.selected_index].as_str() {
                     "Install Neovim" => Action::InstallNeovimNightly,
-                    "Install NEVIRAIDE" => Action::InstallNeovimNightly,
+                    "Install NEVIRAIDE" => Action::InstallNeviraide,
                     "Check Dependencies" => Action::CheckDependencies,
                     "Quit" => Action::Quit,
                     _ => {
@@ -121,5 +121,9 @@ impl Component for Menu {
 
         f.render_stateful_widget(list, area, &mut self.list_state);
         Ok(())
+    }
+
+    fn as_any(&mut self) -> &mut dyn std::any::Any {
+        self
     }
 }

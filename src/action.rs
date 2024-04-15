@@ -8,6 +8,7 @@ pub enum Action {
     Prev,
     CheckDependencies,
     InstallNeovimNightly,
+    InstallNeviraide,
     Tick,
     Render,
     Resize(u16, u16),
