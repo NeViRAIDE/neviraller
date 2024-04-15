@@ -21,13 +21,7 @@ pub struct App {
 
 impl App {
     pub fn new(tick_rate: f64, frame_rate: f64) -> Result<Self> {
-        let menu = Menu::new(vec![
-            "Install Neovim".to_string(),
-            "Install NEVIRAIDE".to_string(),
-            "Check dependencies".to_string(),
-            "Test".to_string(),
-            "Quit".to_string(),
-        ]);
+        let menu = Menu::new(crate::components::menu::default_menu_items());
         let header = Header::new("NEVIRALLER");
         let footer = Footer::new("© 2024 RAprogramm");
         let info = Info::new(" Info component ");

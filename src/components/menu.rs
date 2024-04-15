@@ -5,17 +5,57 @@ use tokio::sync::mpsc::UnboundedSender;
 use super::{Component, Frame};
 use crate::{action::Action, config::Config};
 
+pub fn default_menu_items() -> Vec<MenuItem> {
+    vec![
+        MenuItem::InstallNeovim,
+        MenuItem::InstallNeviraide,
+        MenuItem::CheckDependencies,
+        MenuItem::Test,
+        MenuItem::Quit,
+    ]
+}
+
+pub enum MenuItem {
+    InstallNeovim,
+    InstallNeviraide,
+    CheckDependencies,
+    Test,
+    Quit,
+}
+
+impl MenuItem {
+    fn to_string(&self) -> &str {
+        match self {
+            MenuItem::InstallNeovim => "Install Neovim",
+            MenuItem::InstallNeviraide => "Install NEVIRAIDE",
+            MenuItem::CheckDependencies => "Check dependencies",
+            MenuItem::Test => "Test",
+            MenuItem::Quit => "Quit",
+        }
+    }
+
+    fn to_action(&self) -> Action {
+        match self {
+            MenuItem::InstallNeovim => Action::InstallNeovimNightly,
+            MenuItem::InstallNeviraide => Action::InstallNeviraide,
+            MenuItem::CheckDependencies => Action::CheckDeps,
+            MenuItem::Test => Action::Test,
+            MenuItem::Quit => Action::Quit,
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct Menu {
     command_tx: Option<UnboundedSender<Action>>,
     config: Config,
-    menu_items: Vec<String>,
+    menu_items: Vec<MenuItem>,
     selected_index: usize,
     list_state: ListState,
 }
 
 impl Menu {
-    pub fn new(menu_items: Vec<String>) -> Self {
+    pub fn new(menu_items: Vec<MenuItem>) -> Self {
         let mut state = ListState::default();
         state.select(Some(0));
 
@@ -39,6 +79,27 @@ impl Component for Menu {
         Ok(())
     }
 
+    fn draw(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()> {
+        let items: Vec<ListItem> = self
+            .menu_items
+            .iter()
+            .map(|item| ListItem::new(item.to_string().to_string()))
+            .collect();
+
+        let list = List::new(items)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_set(symbols::border::ROUNDED)
+                    .title("Menu"),
+            )
+            .highlight_symbol(">> ")
+            .highlight_style(Style::default().add_modifier(Modifier::BOLD));
+
+        f.render_stateful_widget(list, area, &mut self.list_state);
+        Ok(())
+    }
+
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::Prev => {
@@ -54,23 +115,7 @@ impl Component for Menu {
                 }
             }
             Action::Select => {
-                let action = match self.menu_items[self.selected_index].as_str() {
-                    "Install Neovim" => Action::InstallNeovimNightly,
-                    "Install NEVIRAIDE" => Action::InstallNeviraide,
-                    "Check dependencies" => Action::CheckDeps,
-                    "Test" => Action::Test,
-                    "Quit" => Action::Quit,
-                    _ => {
-                        log::warn!(
-                            "Unknown menu item selected: {}",
-                            self.menu_items[self.selected_index]
-                        );
-                        Action::Error(format!(
-                            "Unknown menu item: {}",
-                            self.menu_items[self.selected_index]
-                        ))
-                    }
-                };
+                let action = self.menu_items[self.selected_index].to_action();
                 if let Some(tx) = &self.command_tx {
                     tx.send(action)?;
                 }
@@ -78,27 +123,6 @@ impl Component for Menu {
             _ => {}
         }
         Ok(None)
-    }
-
-    fn draw(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()> {
-        let items: Vec<ListItem> = self
-            .menu_items
-            .iter()
-            .map(|item| ListItem::new(item.clone()))
-            .collect();
-
-        let list = List::new(items)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_set(symbols::border::ROUNDED)
-                    .title("Menu"),
-            )
-            .highlight_symbol(">> ")
-            .highlight_style(Style::default().add_modifier(Modifier::BOLD));
-
-        f.render_stateful_widget(list, area, &mut self.list_state);
-        Ok(())
     }
 
     fn as_any(&mut self) -> &mut dyn std::any::Any {
