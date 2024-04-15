@@ -1,5 +1,5 @@
 use super::Component;
-use crate::{/* config::Config, */ tui::Frame};
+use crate::tui::Frame;
 use color_eyre::eyre::Result;
 use ratatui::widgets::{Paragraph, Wrap};
 use ratatui::{prelude::*, widgets::Block, widgets::Borders};

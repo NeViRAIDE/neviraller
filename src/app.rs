@@ -1,8 +1,10 @@
+use std::rc::Rc;
+
 use color_eyre::eyre::Result;
 use crossterm::event::KeyEvent;
 use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::prelude::Rect;
-use tokio::sync::mpsc::{self};
+use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
 use crate::components::footer::Footer;
 use crate::components::header::Header;
@@ -11,6 +13,7 @@ use crate::components::menu::Menu;
 use crate::components::progress::ProgressBar;
 use crate::components::Component;
 use crate::neovim_nightly::scrap::scrap;
+// use crate::neovim_nightly::update_offer;
 use crate::neovim_nightly::ver_compare::check_neovim_version;
 use crate::{action::Action, config::Config, mode::Mode, tui};
 
@@ -59,7 +62,7 @@ impl App {
     }
 
     pub async fn run(&mut self) -> Result<()> {
-        let (action_tx, mut action_rx) = mpsc::unbounded_channel();
+        let (action_tx, action_rx) = mpsc::unbounded_channel();
 
         let mut tui = tui::Tui::new()?;
         tui.enter()?;
@@ -96,8 +99,6 @@ impl App {
         for component in self.components.iter_mut() {
             component.register_action_handler(action_tx.clone())?;
             component.register_config_handler(self.config.clone())?;
-            // let area = if i == 1 { middle_chunks[0] } else { chunks[i] };
-            // component.init(area)?;
         }
         self.components[0].init(chunks[0])?; // Header
         self.components[1].init(middle_chunks[0])?; // Menu
@@ -105,6 +106,29 @@ impl App {
         self.components[3].init(info_chunks[1])?; // Info
         self.components[4].init(chunks[2])?; // Fo
 
+        self.event_loop(
+            &mut tui,
+            action_tx,
+            action_rx,
+            chunks,
+            middle_chunks,
+            info_chunks,
+        )
+        .await?;
+
+        tui.exit()?;
+        Ok(())
+    }
+
+    async fn event_loop(
+        &mut self,
+        tui: &mut tui::Tui,
+        action_tx: UnboundedSender<Action>,
+        mut action_rx: UnboundedReceiver<Action>,
+        chunks: Rc<[Rect]>,
+        middle_chunks: Rc<[Rect]>,
+        info_chunks: Rc<[Rect]>,
+    ) -> Result<()> {
         loop {
             if let Some(e) = tui.next().await {
                 match e {
@@ -147,6 +171,8 @@ impl App {
                 }
                 match action {
                     Action::InstallNeovimNightly => {
+                        log::info!("This is an informational message");
+                        log::error!("This is an error message");
                         self.update_info("Checking current Neovim version...");
                         let total_steps = 10.0;
                         for step in 0..=total_steps as usize {
@@ -178,7 +204,13 @@ impl App {
 
                         match scrap().await {
                             Ok(ver) => match check_neovim_version(&ver).await {
-                                Ok(_) => self.update_info("Neovim is up to date."),
+                                Ok(new_ver) => {
+                                    // self.update_info(
+                                    // format!("Neovim available: {}.", new_ver).as_str(),
+                                    // ),
+                                    log::debug!("new ver: {}", new_ver);
+                                    // update_offer::offer_update(&new_ver).await;
+                                }
                                 Err(e) => {
                                     self.update_info(&format!("Error updating Neovim: {}", e))
                                 }
@@ -187,6 +219,7 @@ impl App {
                         }
                     }
                     Action::InstallNeviraide => {
+                        log::info!("Installing LOG INFO");
                         self.update_info("Installing NEVIRAIDE...");
                     }
                     Action::CheckDependencies => {
@@ -234,17 +267,11 @@ impl App {
                         self.components[2].init(info_chunks[0])?; // ProgressBar
                         self.components[3].init(info_chunks[1])?; // Info
                         self.components[4].init(chunks[2])?; // Fo
+
+                        // self.update_ui(tui).await?;
                     }
                     Action::Render => {
-                        // Перерисовка интерфейса
-                        // tui.draw(|f| {
-                        //     self.components[0].draw(f, chunks[0]); // Header
-                        //     self.components[1].draw(f, middle_chunks[0]); // Menu
-                        //     self.components[2].draw(f, info_chunks[0]); // ProgressBar
-                        //     self.components[3].draw(f, info_chunks[1]); // Info
-                        //     self.components[4].draw(f, chunks[2]); // Fo
-                        // })?;
-                        self.update_ui(&mut tui);
+                        self.update_ui(tui).await?;
                     }
                     _ => {}
                 }
@@ -259,14 +286,13 @@ impl App {
             if self.should_suspend {
                 tui.suspend()?;
                 action_tx.send(Action::Resume)?;
-                tui = tui::Tui::new()?;
+                let tui = &mut tui::Tui::new()?;
                 tui.enter()?;
             } else if self.should_quit {
                 tui.stop()?;
                 break;
             }
         }
-        tui.exit()?;
         Ok(())
     }
 
@@ -281,7 +307,7 @@ impl App {
         }
     }
 
-    fn update_ui(&mut self, tui: &mut tui::Tui) -> Result<()> {
+    async fn update_ui(&mut self, tui: &mut tui::Tui) -> Result<()> {
         let size = tui.size()?;
         let chunks = Layout::default()
             .direction(Direction::Vertical)
@@ -330,7 +356,7 @@ impl App {
                 } else {
                     unimplemented!()
                 };
-                comp.draw(f, area).unwrap(); // Убедитесь, что каждый компонент корректно отрисовывается в своей области
+                comp.draw(f, area).unwrap();
             });
         })?;
 
