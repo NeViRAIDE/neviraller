@@ -39,29 +39,6 @@ impl Component for Menu {
         Ok(())
     }
 
-    fn handle_key_events(&mut self, key: crossterm::event::KeyEvent) -> Result<Option<Action>> {
-        match key.code {
-            crossterm::event::KeyCode::Up => {
-                if self.selected_index > 0 {
-                    self.selected_index -= 1;
-                    self.list_state.select(Some(self.selected_index));
-                }
-                Ok(None)
-            }
-            crossterm::event::KeyCode::Down => {
-                if self.selected_index < self.menu_items.len() - 1 {
-                    self.selected_index += 1;
-                    self.list_state.select(Some(self.selected_index));
-                }
-                Ok(None)
-            }
-            crossterm::event::KeyCode::Enter => {
-                Ok(Some(Action::Select)) // Инициировать действие Select
-            }
-            _ => Ok(None),
-        }
-    }
-
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::Prev => {
@@ -80,7 +57,8 @@ impl Component for Menu {
                 let action = match self.menu_items[self.selected_index].as_str() {
                     "Install Neovim" => Action::InstallNeovimNightly,
                     "Install NEVIRAIDE" => Action::InstallNeviraide,
-                    "Check Dependencies" => Action::CheckDependencies,
+                    "Check dependencies" => Action::CheckDeps,
+                    "Test" => Action::Test,
                     "Quit" => Action::Quit,
                     _ => {
                         log::warn!(

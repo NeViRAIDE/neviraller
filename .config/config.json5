@@ -11,6 +11,7 @@
 
       "up": "Prev",
       "down": "Next",
+      "enter": "Select"
     },
   }
 }

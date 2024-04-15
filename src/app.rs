@@ -1,20 +1,11 @@
-use std::rc::Rc;
-
 use color_eyre::eyre::Result;
 use crossterm::event::KeyEvent;
 use ratatui::layout::{Constraint, Direction, Layout};
-use ratatui::prelude::Rect;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
-use crate::components::footer::Footer;
-use crate::components::header::Header;
-use crate::components::info::Info;
-use crate::components::menu::Menu;
-use crate::components::progress::ProgressBar;
-use crate::components::Component;
-use crate::neovim_nightly::scrap::scrap;
-// use crate::neovim_nightly::update_offer;
-use crate::neovim_nightly::ver_compare::check_neovim_version;
+use crate::components::{
+    footer::Footer, header::Header, info::Info, menu::Menu, progress::ProgressBar, Component,
+};
 use crate::{action::Action, config::Config, mode::Mode, tui};
 
 pub struct App {
@@ -34,6 +25,7 @@ impl App {
             "Install Neovim".to_string(),
             "Install NEVIRAIDE".to_string(),
             "Check dependencies".to_string(),
+            "Test".to_string(),
             "Quit".to_string(),
         ]);
         let header = Header::new("NEVIRALLER");
@@ -49,7 +41,7 @@ impl App {
             components: vec![
                 Box::new(header),
                 Box::new(menu),
-                Box::new(progress_bar), // Добавление ProgressBar в приложение
+                Box::new(progress_bar),
                 Box::new(info),
                 Box::new(footer),
             ],
@@ -67,56 +59,43 @@ impl App {
         let mut tui = tui::Tui::new()?;
         tui.enter()?;
 
-        // Определение размеров и создание разделов экрана
-        let size = tui.size()?;
-        let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .margin(1)
-            .constraints([
-                Constraint::Length(1),
-                Constraint::Min(10),
-                Constraint::Length(1),
-            ])
-            .split(size);
-
-        // Разделение основного меню на две части
-        let middle_chunks = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([
-                Constraint::Percentage(30), // 50% для меню
-                Constraint::Percentage(70), // 50% для другого контента
-            ])
-            .split(chunks[1]);
-
-        let info_chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Length(3), // ProgressBar
-                Constraint::Min(1),    // Info
-            ])
-            .split(middle_chunks[1]);
-
         for component in self.components.iter_mut() {
             component.register_action_handler(action_tx.clone())?;
             component.register_config_handler(self.config.clone())?;
         }
-        self.components[0].init(chunks[0])?; // Header
-        self.components[1].init(middle_chunks[0])?; // Menu
-        self.components[2].init(info_chunks[0])?; // ProgressBar
-        self.components[3].init(info_chunks[1])?; // Info
-        self.components[4].init(chunks[2])?; // Fo
 
-        self.event_loop(
-            &mut tui,
-            action_tx,
-            action_rx,
-            chunks,
-            middle_chunks,
-            info_chunks,
-        )
-        .await?;
+        self.update_ui(&mut tui).await?;
+
+        self.event_loop(&mut tui, action_tx, action_rx).await?;
 
         tui.exit()?;
+        Ok(())
+    }
+
+    async fn process_event(
+        &mut self,
+        event: tui::Event,
+        action_tx: &UnboundedSender<Action>,
+    ) -> Result<()> {
+        match event {
+            tui::Event::Quit => action_tx.send(Action::Quit)?,
+            tui::Event::Render | tui::Event::Resize(_, _) => action_tx.send(Action::Render)?,
+            tui::Event::Key(key) => self.handle_key_event(key, action_tx).await,
+            _ => {}
+        }
+        Ok(())
+    }
+
+    async fn process_action(
+        &mut self,
+        action: Action,
+        tui: &mut tui::Tui,
+        action_tx: &UnboundedSender<Action>,
+    ) -> Result<()> {
+        match action {
+            Action::Render | Action::Resize(_, _) => self.update_ui(tui).await?,
+            _ => self.handle_specific_action(action, tui, action_tx).await?,
+        }
         Ok(())
     }
 
@@ -125,162 +104,14 @@ impl App {
         tui: &mut tui::Tui,
         action_tx: UnboundedSender<Action>,
         mut action_rx: UnboundedReceiver<Action>,
-        chunks: Rc<[Rect]>,
-        middle_chunks: Rc<[Rect]>,
-        info_chunks: Rc<[Rect]>,
     ) -> Result<()> {
         loop {
             if let Some(e) = tui.next().await {
-                match e {
-                    tui::Event::Quit => action_tx.send(Action::Quit)?,
-                    tui::Event::Render => action_tx.send(Action::Render)?,
-                    tui::Event::Resize(x, y) => action_tx.send(Action::Resize(x, y))?,
-                    tui::Event::Key(key) => {
-                        if let Some(keymap) = self.config.keybindings.get(&self.mode) {
-                            if let Some(action) = keymap.get(&vec![key]) {
-                                log::info!("Got action: {action:?}");
-                                action_tx.send(action.clone())?;
-                            } else {
-                                // If the key was not handled as a single key action,
-                                // then consider it for multi-key combinations.
-                                self.last_tick_key_events.push(key);
-
-                                // Check for multi-key combinations
-                                if let Some(action) = keymap.get(&self.last_tick_key_events) {
-                                    log::info!("Got action: {action:?}");
-                                    action_tx.send(action.clone())?;
-                                }
-                            }
-                        };
-                    }
-                    _ => {}
-                }
-
-                for component in self.components.iter_mut() {
-                    if let Some(action) = component.handle_events(Some(e.clone()))? {
-                        action_tx.send(action)?;
-                    }
-                }
+                self.process_event(e, &action_tx).await?;
             }
 
-            // self.app_actions(action_rx, action_tx, tui, chunks, middle_chunks);
-
             while let Ok(action) = action_rx.try_recv() {
-                if action != Action::Tick && action != Action::Render {
-                    log::debug!("{action:?}");
-                }
-                match action {
-                    Action::InstallNeovimNightly => {
-                        log::info!("This is an informational message");
-                        log::error!("This is an error message");
-                        self.update_info("Checking current Neovim version...");
-                        let total_steps = 10.0;
-                        for step in 0..=total_steps as usize {
-                            let progress = step as f64 / total_steps;
-                            self.components[2]
-                                .as_any()
-                                .downcast_mut::<ProgressBar>()
-                                .unwrap()
-                                .update_progress(progress);
-
-                            // Обновление и перерисовка всего TUI, не только ProgressBar
-                            tui.draw(|f| {
-                                self.components.iter_mut().for_each(|comp| {
-                                    let area = match comp.as_any().type_id() {
-                                        _ if comp.as_any().is::<Header>() => chunks[0],
-                                        _ if comp.as_any().is::<Menu>() => middle_chunks[0],
-                                        _ if comp.as_any().is::<ProgressBar>() => info_chunks[0],
-                                        _ if comp.as_any().is::<Info>() => info_chunks[1],
-                                        _ if comp.as_any().is::<Footer>() => chunks[2],
-                                        _ => unimplemented!(),
-                                    };
-                                    comp.draw(f, area).unwrap(); // Убедитесь, что каждый компонент корректно отрисовывается в своей области
-                                });
-                            })?;
-
-                            // Имитация задержки для видимости изменений прогресса
-                            tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-                        }
-
-                        match scrap().await {
-                            Ok(ver) => match check_neovim_version(&ver).await {
-                                Ok(new_ver) => {
-                                    // self.update_info(
-                                    // format!("Neovim available: {}.", new_ver).as_str(),
-                                    // ),
-                                    log::debug!("new ver: {}", new_ver);
-                                    // update_offer::offer_update(&new_ver).await;
-                                }
-                                Err(e) => {
-                                    self.update_info(&format!("Error updating Neovim: {}", e))
-                                }
-                            },
-                            Err(e) => self.update_info(&format!("Failed to check version: {}", e)),
-                        }
-                    }
-                    Action::InstallNeviraide => {
-                        log::info!("Installing LOG INFO");
-                        self.update_info("Installing NEVIRAIDE...");
-                    }
-                    Action::CheckDependencies => {
-                        self.update_info("Checking system dependencies...");
-                        log::debug!("Starting dependencies check...");
-                    }
-                    Action::Tick => {
-                        self.last_tick_key_events.drain(..);
-                    }
-                    Action::Quit => self.should_quit = true,
-                    Action::Suspend => self.should_suspend = true,
-                    Action::Resume => self.should_suspend = false,
-                    Action::Resize(w, h) => {
-                        tui.resize(Rect::new(0, 0, w, h))?;
-                        let size = tui.size()?;
-                        let chunks = Layout::default()
-                            .direction(Direction::Vertical)
-                            .margin(1)
-                            .constraints([
-                                Constraint::Length(3),
-                                Constraint::Min(10),
-                                Constraint::Length(3),
-                            ])
-                            .split(size);
-
-                        let middle_chunks = Layout::default()
-                            .direction(Direction::Horizontal)
-                            .constraints([
-                                Constraint::Percentage(50), // 50% для меню
-                                Constraint::Percentage(50), // 50% для Info
-                            ])
-                            .split(chunks[1]);
-
-                        let info_chunks = Layout::default()
-                            .direction(Direction::Vertical)
-                            .constraints([
-                                Constraint::Length(3), // ProgressBar
-                                Constraint::Min(1),    // Info
-                            ])
-                            .split(middle_chunks[1]);
-
-                        // Переинициализация компонентов
-                        self.components[0].init(chunks[0])?; // Header
-                        self.components[1].init(middle_chunks[0])?; // Menu
-                        self.components[2].init(info_chunks[0])?; // ProgressBar
-                        self.components[3].init(info_chunks[1])?; // Info
-                        self.components[4].init(chunks[2])?; // Fo
-
-                        // self.update_ui(tui).await?;
-                    }
-                    Action::Render => {
-                        self.update_ui(tui).await?;
-                    }
-                    _ => {}
-                }
-
-                for component in self.components.iter_mut() {
-                    if let Some(action) = component.update(action.clone())? {
-                        action_tx.send(action)?
-                    };
-                }
+                self.process_action(action, tui, &action_tx).await?;
             }
 
             if self.should_suspend {
@@ -360,6 +191,80 @@ impl App {
             });
         })?;
 
+        Ok(())
+    }
+
+    async fn handle_key_event(&mut self, key: KeyEvent, action_tx: &UnboundedSender<Action>) {
+        log::info!("Key event received: {:?}", key);
+        self.last_tick_key_events.push(key);
+
+        if let Some(keymap) = self.config.keybindings.get(&self.mode) {
+            if let Some(action) = keymap.get(&self.last_tick_key_events) {
+                log::info!("Action found for sequence: {action:?}");
+                action_tx
+                    .send(action.clone())
+                    .expect("Failed to send action");
+                self.last_tick_key_events.clear();
+            } else {
+                log::info!("No action found for sequence, clearing events.");
+                self.last_tick_key_events.clear();
+            }
+        } else {
+            log::warn!("No keybindings found for current mode: {:?}", self.mode);
+            self.last_tick_key_events.clear();
+        }
+    }
+
+    async fn handle_specific_action(
+        &mut self,
+        action: Action,
+        tui: &mut tui::Tui,
+        action_tx: &UnboundedSender<Action>,
+    ) -> Result<()> {
+        if action != Action::Tick && action != Action::Render {
+            log::debug!("{action:?}");
+        }
+
+        match action {
+            Action::InstallNeovimNightly => {
+                log::info!("Starting installation of Neovim Nightly");
+                self.update_info("Neovim Nightly ");
+            }
+            Action::InstallNeviraide => {
+                self.update_info("NEVIRAIDE");
+            }
+            Action::CheckDeps => {
+                self.update_info("All dependencies are up to date");
+            }
+            Action::Test => {
+                self.update_info("Test for test");
+            }
+            Action::Quit => {
+                self.should_quit = true;
+            }
+            Action::Suspend => {
+                self.should_suspend = true;
+            }
+            Action::Resume => {
+                self.should_suspend = false;
+                let tui = &mut tui::Tui::new()?;
+                tui.enter()?;
+            }
+            Action::Tick => {
+                self.last_tick_key_events.drain(..);
+            }
+            Action::Render => {
+                self.update_ui(tui).await?;
+            }
+            _ => {
+                log::debug!("Unhandled action: {:?}", action);
+            }
+        }
+        for component in self.components.iter_mut() {
+            if let Some(action) = component.update(action.clone())? {
+                action_tx.send(action)?
+            };
+        }
         Ok(())
     }
 }
