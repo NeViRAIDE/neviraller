@@ -8,8 +8,8 @@ use ratatui::{
 use std::any::Any;
 
 pub struct ProgressBar {
-    pub progress: f64, // Прогресс от 0.0 до 1.0
-    pub visible: bool, // Управление видимостью ProgressBar
+    pub progress: f64,
+    pub visible: bool,
 }
 
 impl Default for ProgressBar {
@@ -26,10 +26,17 @@ impl ProgressBar {
         }
     }
 
-    /// Обновляет прогресс бар до нового значения.
-    pub fn update_progress(&mut self, progress: f64) {
-        self.progress = progress;
-        self.visible = progress > 0.0 && progress < 1.0; // Видим только если прогресс не на 0% и не на 100%
+    pub fn update_progress(
+        &mut self,
+        progress: f64,
+        action_tx: &tokio::sync::mpsc::UnboundedSender<crate::action::Action>,
+    ) -> Result<()> {
+        self.progress = progress / 100.0;
+        self.visible = progress > 0.0 && progress < 100.0;
+
+        action_tx.send(crate::action::Action::Render)?;
+
+        Ok(())
     }
 }
 
@@ -44,7 +51,8 @@ impl Component for ProgressBar {
                 .block(
                     Block::default()
                         .title(" Progress ")
-                        .borders(ratatui::widgets::Borders::ALL),
+                        .borders(ratatui::widgets::Borders::ALL)
+                        .border_set(ratatui::symbols::border::ROUNDED),
                 )
                 .gauge_style(Style::default().fg(Color::Magenta).bg(Color::Black))
                 .ratio(self.progress);

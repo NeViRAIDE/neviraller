@@ -18,5 +18,6 @@ pub enum Action {
     Quit,
     Refresh,
     Error(String),
+    LogMessage(String),
     Help,
 }

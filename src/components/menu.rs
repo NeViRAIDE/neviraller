@@ -91,7 +91,7 @@ impl Component for Menu {
                 Block::default()
                     .borders(Borders::ALL)
                     .border_set(symbols::border::ROUNDED)
-                    .title("Menu"),
+                    .title(" Menu "),
             )
             .highlight_symbol(">> ")
             .highlight_style(Style::default().add_modifier(Modifier::BOLD));

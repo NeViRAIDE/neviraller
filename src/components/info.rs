@@ -29,7 +29,10 @@ impl Component for Info {
         let title_str: &str = &self.title;
         let content_str: &str = &self.content;
 
-        let block = Block::default().title(title_str).borders(Borders::ALL);
+        let block = Block::default()
+            .title(title_str)
+            .borders(Borders::ALL)
+            .border_set(ratatui::symbols::border::ROUNDED);
         let scroll_offset = self
             .content
             .matches('\n')

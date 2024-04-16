@@ -21,11 +21,6 @@ pub struct App {
 
 impl App {
     pub fn new(tick_rate: f64, frame_rate: f64) -> Result<Self> {
-        let menu = Menu::new(crate::components::menu::default_menu_items());
-        let header = Header::new("NEVIRALLER");
-        let footer = Footer::new("© 2024 RAprogramm");
-        let info = Info::new(" Info component ");
-        let progress_bar = ProgressBar::new();
         let config = Config::new()?;
         let mode = Mode::Home;
 
@@ -33,11 +28,11 @@ impl App {
             tick_rate,
             frame_rate,
             components: vec![
-                Box::new(header),
-                Box::new(menu),
-                Box::new(progress_bar),
-                Box::new(info),
-                Box::new(footer),
+                Box::new(Header::new("NEVIRALLER")),
+                Box::new(Menu::new(crate::components::menu::default_menu_items())),
+                Box::new(ProgressBar::new()),
+                Box::new(Info::new(" Info component ")),
+                Box::new(Footer::new("© 2024 RAprogramm")),
             ],
             should_quit: false,
             should_suspend: false,
@@ -70,10 +65,13 @@ impl App {
         &mut self,
         event: tui::Event,
         action_tx: &UnboundedSender<Action>,
+        tui: &mut tui::Tui, // Добавляем tui как аргумент
     ) -> Result<()> {
         match event {
             tui::Event::Quit => action_tx.send(Action::Quit)?,
-            tui::Event::Render | tui::Event::Resize(_, _) => action_tx.send(Action::Render)?,
+            tui::Event::Render | tui::Event::Resize(_, _) => {
+                self.update_ui(tui).await?; // Теперь мы обрабатываем UI обновления прямо здесь
+            }
             tui::Event::Key(key) => self.handle_key_event(key, action_tx).await,
             _ => {}
         }
@@ -87,7 +85,8 @@ impl App {
         action_tx: &UnboundedSender<Action>,
     ) -> Result<()> {
         match action {
-            Action::Render | Action::Resize(_, _) => self.update_ui(tui).await?,
+            Action::Render => self.update_ui(tui).await?,
+            // Обрабатывайте другие действия...
             _ => self.handle_specific_action(action, tui, action_tx).await?,
         }
         Ok(())
@@ -101,7 +100,7 @@ impl App {
     ) -> Result<()> {
         loop {
             if let Some(e) = tui.next().await {
-                self.process_event(e, &action_tx).await?;
+                self.process_event(e, &action_tx, tui).await?;
             }
 
             while let Ok(action) = action_rx.try_recv() {
@@ -222,7 +221,26 @@ impl App {
         match action {
             Action::InstallNeovimNightly => {
                 log::info!("Starting installation of Neovim Nightly");
-                self.update_info("Neovim Nightly ");
+                self.update_info("Installing Neovim Nightly...");
+
+                let total_steps = 10;
+                for step in 0..=total_steps {
+                    if let Err(r) = self.update_ui(tui).await {
+                        log::error!("Unable to update UI: {}", r)
+                    }
+                    if let Some(progress_bar) = self
+                        .components
+                        .iter_mut()
+                        .find_map(|component| component.as_any().downcast_mut::<ProgressBar>())
+                    {
+                        let progress = (step as f64 / total_steps as f64) * 100.0;
+                        progress_bar.update_progress(progress, action_tx)?;
+                        // action_tx.send(Action::Render)?;
+                    }
+                    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                }
+
+                self.update_info("Neovim Nightly installed successfully.");
             }
             Action::InstallNeviraide => {
                 self.update_info("NEVIRAIDE");
@@ -231,6 +249,7 @@ impl App {
                 self.update_info("All dependencies are up to date");
             }
             Action::Test => {
+                // self.perform_long_task(action_tx.clone()).await?;
                 self.update_info("Test for test");
             }
             Action::Quit => {
