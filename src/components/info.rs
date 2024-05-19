@@ -37,7 +37,7 @@ impl Component for Info {
             .content
             .matches('\n')
             .count()
-            .saturating_sub(area.height as usize); // Автоматическая прокрутка к последнему сообщению
+            .saturating_sub(area.height as usize - 2); // Автоматическая прокрутка к последнему сообщению
 
         let paragraph = Paragraph::new(content_str)
             .block(block)

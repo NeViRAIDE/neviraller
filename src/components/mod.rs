@@ -12,6 +12,7 @@ use crate::{
 pub mod footer;
 pub mod header;
 pub mod info;
+pub mod input;
 pub mod menu;
 pub mod progress;
 

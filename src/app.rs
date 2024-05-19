@@ -3,9 +3,12 @@ use crossterm::event::KeyEvent;
 use ratatui::layout::{Constraint, Direction, Layout};
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
+use crate::components::input::Input;
 use crate::components::{
     footer::Footer, header::Header, info::Info, menu::Menu, progress::ProgressBar, Component,
 };
+use crate::neovim_nightly::scrap::scrap;
+use crate::neovim_nightly::ver_compare::check_neovim_version;
 use crate::{action::Action, config::Config, mode::Mode, tui};
 
 pub struct App {
@@ -32,6 +35,7 @@ impl App {
                 Box::new(Menu::new(crate::components::menu::default_menu_items())),
                 Box::new(ProgressBar::new()),
                 Box::new(Info::new(" Info component ")),
+                Box::new(Input::new(" Your choise ")),
                 Box::new(Footer::new("© 2024 RAprogramm")),
             ],
             should_quit: false,
@@ -86,6 +90,13 @@ impl App {
     ) -> Result<()> {
         match action {
             Action::Render => self.update_ui(tui).await?,
+            Action::Resume => {
+                // Пересоздаем экземпляр Tui
+                let new_tui = tui::Tui::new()?;
+                *tui = new_tui;
+                tui.enter()?; // Убедитесь, что терминал правильно настроен
+                self.update_ui(tui).await?; // Перерисовываем UI
+            }
             // Обрабатывайте другие действия...
             _ => self.handle_specific_action(action, tui, action_tx).await?,
         }
@@ -175,6 +186,8 @@ impl App {
                     info_chunks[0]
                 } else if comp.as_any().is::<Info>() {
                     info_chunks[1]
+                } else if comp.as_any().is::<Input>() {
+                    info_chunks[1]
                 } else if comp.as_any().is::<Footer>() {
                     chunks[2]
                 } else {
@@ -189,18 +202,26 @@ impl App {
 
     async fn handle_key_event(&mut self, key: KeyEvent, action_tx: &UnboundedSender<Action>) {
         log::info!("Key event received: {:?}", key);
-        self.last_tick_key_events.push(key);
+        // self.last_tick_key_events.push(key);
 
         if let Some(keymap) = self.config.keybindings.get(&self.mode) {
-            if let Some(action) = keymap.get(&self.last_tick_key_events) {
+            if let Some(action) = keymap.get(&vec![key]) {
                 log::info!("Action found for sequence: {action:?}");
                 action_tx
                     .send(action.clone())
                     .expect("Failed to send action");
-                self.last_tick_key_events.clear();
             } else {
-                log::info!("No action found for sequence, clearing events.");
-                self.last_tick_key_events.clear();
+                // If the key was not handled as a single key action,
+                // then consider it for multi-key combinations.
+                self.last_tick_key_events.push(key);
+
+                // Check for multi-key combinations
+                if let Some(action) = keymap.get(&self.last_tick_key_events) {
+                    log::info!("Got action: {action:?}");
+                    if let Err(r) = action_tx.send(action.clone()) {
+                        log::error!("Unable to got action: {}", r);
+                    }
+                }
             }
         } else {
             log::warn!("No keybindings found for current mode: {:?}", self.mode);
@@ -222,6 +243,8 @@ impl App {
             Action::InstallNeovimNightly => {
                 log::info!("Starting installation of Neovim Nightly");
                 self.update_info("Installing Neovim Nightly...");
+                let available_ver = scrap().await.unwrap();
+                let check_ver = check_neovim_version(&available_ver).await.unwrap();
 
                 let total_steps = 10;
                 for step in 0..=total_steps {
@@ -235,11 +258,11 @@ impl App {
                     {
                         let progress = (step as f64 / total_steps as f64) * 100.0;
                         progress_bar.update_progress(progress, action_tx)?;
-                        // action_tx.send(Action::Render)?;
                     }
-                    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                    tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
                 }
 
+                self.update_info(format!("{:#?}", check_ver).as_str());
                 self.update_info("Neovim Nightly installed successfully.");
             }
             Action::InstallNeviraide => {
@@ -249,29 +272,20 @@ impl App {
                 self.update_info("All dependencies are up to date");
             }
             Action::Test => {
-                // self.perform_long_task(action_tx.clone()).await?;
                 self.update_info("Test for test");
+                if let Some(input) = self
+                    .components
+                    .iter_mut()
+                    .find_map(|component| component.as_any().downcast_mut::<Input>())
+                {
+                    input.show();
+                }
             }
-            Action::Quit => {
-                self.should_quit = true;
-            }
-            Action::Suspend => {
-                self.should_suspend = true;
-            }
-            Action::Resume => {
-                self.should_suspend = false;
-                let tui = &mut tui::Tui::new()?;
-                tui.enter()?;
-            }
-            Action::Tick => {
-                self.last_tick_key_events.drain(..);
-            }
-            Action::Render => {
-                self.update_ui(tui).await?;
-            }
-            _ => {
-                log::debug!("Unhandled action: {:?}", action);
-            }
+            Action::Quit => self.should_quit = true,
+            Action::Suspend => self.should_suspend = true,
+            Action::Resume => self.should_suspend = false,
+            Action::Render => self.update_ui(tui).await?,
+            _ => log::debug!("Unhandled action: {:?}", action),
         }
         for component in self.components.iter_mut() {
             if let Some(action) = component.update(action.clone())? {
